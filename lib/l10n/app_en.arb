@@ -1,0 +1,12 @@
+{
+  "rateApp": "Rate App",
+  "rateAppDescription": "Rate us on the Play Store!",
+  "moreApps": "More apps",
+  "moreAppsDescription": "Visit our developer page",
+  "appVersion": "Version",
+
+  "transactions": "Transactions",
+  "wallets": "Wallets",
+  "reports": "Reports",
+  "settings": "Serttings"
+}
