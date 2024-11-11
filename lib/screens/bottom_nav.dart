@@ -27,9 +27,6 @@ class BottomNav extends StatelessWidget {
           tabs: tabs
               .map((tab) => Tab(icon: Icon(tab['icon'] as IconData), text: tab['label'] as String))
               .toList(),
-          labelColor: Colors.blue,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.transparent,
         ),
       ),
     );
