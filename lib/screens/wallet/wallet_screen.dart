@@ -7,13 +7,6 @@ import 'package:vent_expense_pro/screens/wallet/provider/wallet_provider.dart';
 import 'package:vent_expense_pro/screens/wallet/widgets/add_wallet_btn.dart';
 import 'package:vent_expense_pro/screens/wallet/widgets/wallet_btn.dart';
 
-class Wallet {
-  final String name;
-  final String balance;
-
-  Wallet({required this.name, required this.balance});
-}
-
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -24,11 +17,6 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
-  // final List<Wallet> wallets = [
-  //   Wallet(name: 'Cash', balance: '989000'),
-  //   Wallet(name: 'Bank Account', balance: '1500000'),
-  //   Wallet(name: 'Savings', balance: '2000000'),
-  // ];
   final additionalLastAddWalletButtonCount = 1;
   late final WalletProvider _walletProvider;
 
@@ -47,6 +35,16 @@ class _WalletScreenState extends State<WalletScreen> {
     return ChangeNotifierProvider.value(
       value: _walletProvider,
       child: Consumer<WalletProvider>(builder: (context, provider, child) {
+        if (provider.errorMessage != null && provider.errorMessage!.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(provider.errorMessage!),
+              ),
+            );
+          });
+        }
+
         if (provider.isLoading) {
           return Center(child: CircularProgressIndicator());
         }

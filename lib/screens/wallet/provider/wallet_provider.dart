@@ -6,11 +6,18 @@ class WalletProvider extends ChangeNotifier {
   final WalletService _walletService;
   List<WalletModel> _wallets = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   WalletProvider(this._walletService);
 
   List<WalletModel> get wallets => _wallets;
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  void setErrorMessage(String? message) {
+    _errorMessage = message;
+    notifyListeners();
+  }
 
   Future<void> loadWallets() async {
     _isLoading = true;
@@ -18,9 +25,9 @@ class WalletProvider extends ChangeNotifier {
 
     try {
       _wallets = await _walletService.getAllWallets();
+      setErrorMessage(null);
     } catch (e) {
-      // Handle error
-      print(e);
+      setErrorMessage(e.toString());
     }
 
     _isLoading = false;
@@ -35,7 +42,7 @@ class WalletProvider extends ChangeNotifier {
       }
       return success;
     } catch (e) {
-      print(e);
+      setErrorMessage(e.toString());
       return false;
     }
   }
@@ -48,7 +55,7 @@ class WalletProvider extends ChangeNotifier {
       }
       return success;
     } catch (e) {
-      print(e);
+      setErrorMessage(e.toString());
       return false;
     }
   }
@@ -61,7 +68,7 @@ class WalletProvider extends ChangeNotifier {
       }
       return success;
     } catch (e) {
-      print(e);
+      setErrorMessage(e.toString());
       return false;
     }
   }
