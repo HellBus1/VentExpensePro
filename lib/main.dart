@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:vent_expense_pro/dependency_injection.dart';
 import 'package:vent_expense_pro/screens/bottom_nav.dart';
+import 'package:vent_expense_pro/screens/wallet/provider/wallet_provider.dart';
 
 import 'commons/themes/theme.dart';
 import 'commons/constants/constants.dart' as Constants;
 
-void main() {
-  runApp(const MainApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await setupLocator();
+
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => locator<WalletProvider>())
+    ],
+    child: MainApp(),
+  ));
 }
 
 class MainApp extends StatelessWidget {
