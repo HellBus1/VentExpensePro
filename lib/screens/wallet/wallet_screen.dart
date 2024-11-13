@@ -52,7 +52,7 @@ class _WalletScreenState extends State<WalletScreen> {
         }
 
         final wallets = provider.wallets;
-        
+
         return Scaffold(
           appBar: AppBar(
             title: Text(localText?.wallets ?? Constants.EMPTY_STRING),
@@ -77,8 +77,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         return AddWalletBtn();
                       }
                       return WalletBtn(
-                        name: wallets[index].name,
-                        balance: wallets[index].balance.toString(),
+                        wallet: wallets[index],
                       );
                     },
                   ),

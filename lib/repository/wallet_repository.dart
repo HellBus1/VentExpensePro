@@ -1,9 +1,9 @@
-import 'package:vent_expense_pro/models/wallet.dart';
+import 'package:vent_expense_pro/models/wallet_model.dart';
 
 abstract class WalletRepository {
-  Future<List<Wallet>> getAllWallets();
-  Future<Wallet?> getWallet(int id);
-  Future<int> createWallet(Wallet wallet);
-  Future<int> updateWallet(Wallet wallet);
+  Future<List<WalletModel>> getAllWallets();
+  Future<WalletModel?> getWallet(int id);
+  Future<int> createWallet(WalletModel wallet);
+  Future<int> updateWallet(WalletModel wallet);
   Future<int> deleteWallet(int id);
 }

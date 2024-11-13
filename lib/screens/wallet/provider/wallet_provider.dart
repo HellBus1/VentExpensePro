@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:vent_expense_pro/models/wallet.dart';
+import 'package:vent_expense_pro/models/wallet_model.dart';
 import 'package:vent_expense_pro/service/wallet_service.dart';
 
 class WalletProvider extends ChangeNotifier {
   final WalletService _walletService;
-  List<Wallet> _wallets = [];
+  List<WalletModel> _wallets = [];
   bool _isLoading = false;
 
   WalletProvider(this._walletService);
 
-  List<Wallet> get wallets => _wallets;
+  List<WalletModel> get wallets => _wallets;
   bool get isLoading => _isLoading;
 
   Future<void> loadWallets() async {
@@ -18,7 +18,6 @@ class WalletProvider extends ChangeNotifier {
 
     try {
       _wallets = await _walletService.getAllWallets();
-      print(_wallets);
     } catch (e) {
       // Handle error
       print(e);
@@ -28,7 +27,7 @@ class WalletProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addWallet(Wallet wallet) async {
+  Future<bool> addWallet(WalletModel wallet) async {
     try {
       final success = await _walletService.createWallet(wallet);
       if (success) {
@@ -41,7 +40,7 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateWallet(Wallet wallet) async {
+  Future<bool> updateWallet(WalletModel wallet) async {
     try {
       final success = await _walletService.updateWallet(wallet);
       if (success) {
