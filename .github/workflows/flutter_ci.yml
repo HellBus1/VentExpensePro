@@ -2,10 +2,8 @@ name: VentFit Build and Test CI (Android)
 
 on:
   pull_request:
-    branches:
-      - master
-      - staging
-      
+    branches: [ master ]
+
 jobs:
   build:
     name: Run Build
