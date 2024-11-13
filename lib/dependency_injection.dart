@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:vent_expense_pro/data/sqflite/sqflite_helper.dart';
 import 'package:vent_expense_pro/repository/impl/wallet_repository_impl.dart';
 import 'package:vent_expense_pro/repository/wallet_repository.dart';
-import 'package:vent_expense_pro/screens/wallet/provider/wallet_provider.dart';
+import 'package:vent_expense_pro/provider/wallet_provider.dart';
 import 'package:vent_expense_pro/service/wallet_service.dart';
 
 final GetIt locator = GetIt.instance;

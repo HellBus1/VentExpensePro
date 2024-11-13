@@ -26,6 +26,7 @@ class WalletProvider extends ChangeNotifier {
     try {
       _wallets = await _walletService.getAllWallets();
       setErrorMessage(null);
+      throw Exception("cek");
     } catch (e) {
       setErrorMessage(e.toString());
     }
