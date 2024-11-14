@@ -2,7 +2,7 @@ name: VentFit Build and Test CI (Android)
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ master, staging ]
 
 jobs:
   build:
@@ -46,8 +46,8 @@ jobs:
     # - name: Analyze dart code
     #   run: flutter analyze .
     
-    # - name: Run test
-    #   run: flutter test
+    - name: Run test
+      run: flutter test
     
     - name: Build apk
       run: flutter build apk --debug --split-per-abi
