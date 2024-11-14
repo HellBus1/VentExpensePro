@@ -32,9 +32,8 @@ ThemeData _getThemeData(ColorScheme colorScheme) {
         fontWeight: FontWeight.w500,
       ),
       systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: colorScheme.surface,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.dark,
+        statusBarColor: colorScheme.primary,
+        statusBarIconBrightness: Brightness.light,
       ),
     ),
     textTheme: TextTheme(
@@ -58,8 +57,7 @@ ThemeData _getThemeData(ColorScheme colorScheme) {
     ),
     tabBarTheme: TabBarTheme(
       labelColor: colorScheme.primary,
-      unselectedLabelColor: colorScheme.onSurface
-          .withOpacity(0.6),
+      unselectedLabelColor: colorScheme.onSurface.withOpacity(0.6),
     ),
   );
 }
