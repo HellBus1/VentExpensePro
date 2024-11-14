@@ -2,9 +2,24 @@ name: VentFit Build and Test CI (Android)
 
 on:
   pull_request:
-    branches: [ master, staging ]
+    branches:
+      - master
+      - staging
 
 jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+          channel: 'stable'
+      - name: Run Tests
+        run: flutter test
+
   build:
     name: Run Build
     runs-on: ubuntu-latest
@@ -39,15 +54,9 @@ jobs:
     
     - name: Generate necessary annotation
       run: flutter pub run build_runner build
-
-    # - name: Checking formatting issues
-    #   run: flutter format --set-exit-if-changed .
     
     # - name: Analyze dart code
     #   run: flutter analyze .
-    
-    - name: Run test
-      run: flutter test
     
     - name: Build apk
       run: flutter build apk --debug --split-per-abi
