@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:vent_expense_pro/models/wallet_model.dart';
-import 'package:vent_expense_pro/repository/wallet_repository.dart';
+import 'package:vent_expense_pro/repositories/wallet_repository.dart';
 
 class WalletRepositoryImpl implements WalletRepository {
   final Database _db;

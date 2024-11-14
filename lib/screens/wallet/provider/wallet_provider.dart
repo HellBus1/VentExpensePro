@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vent_expense_pro/models/wallet_model.dart';
-import 'package:vent_expense_pro/service/wallet_service.dart';
+import 'package:vent_expense_pro/services/wallet_service.dart';
 
 class WalletProvider extends ChangeNotifier {
   final WalletService _walletService;
