@@ -109,13 +109,15 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Open Quick-Add bottom sheet
-        },
-        tooltip: 'Log Transaction',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _currentIndex == 1
+          ? null // Accounts screen manages its own FAB
+          : FloatingActionButton(
+              onPressed: () {
+                // TODO: Open Quick-Add bottom sheet
+              },
+              tooltip: 'Log Transaction',
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }
