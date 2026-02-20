@@ -9,6 +9,7 @@ import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
 import 'domain/usecases/calculate_net_position.dart';
 import 'domain/usecases/log_transaction.dart';
+import 'domain/usecases/manage_account.dart';
 import 'presentation/providers/account_provider.dart';
 import 'presentation/providers/transaction_provider.dart';
 import 'presentation/screens/accounts_screen.dart';
@@ -36,6 +37,7 @@ class VentExpenseApp extends StatelessWidget {
           create: (_) => AccountProvider(
             sl<AccountRepository>(),
             sl<CalculateNetPosition>(),
+            sl<ManageAccount>(),
           ),
         ),
         ChangeNotifierProvider(
