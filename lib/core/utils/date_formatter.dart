@@ -5,20 +5,16 @@ class DateFormatter {
   DateFormatter._();
 
   /// Full date: "21 February 2026"
-  static String full(DateTime date) =>
-      DateFormat('d MMMM yyyy').format(date);
+  static String full(DateTime date) => DateFormat('d MMMM yyyy').format(date);
 
   /// Short date: "21 Feb 2026"
-  static String short(DateTime date) =>
-      DateFormat('d MMM yyyy').format(date);
+  static String short(DateTime date) => DateFormat('d MMM yyyy').format(date);
 
   /// Day and month only: "21 Feb"
-  static String dayMonth(DateTime date) =>
-      DateFormat('d MMM').format(date);
+  static String dayMonth(DateTime date) => DateFormat('d MMM').format(date);
 
   /// Time only: "14:30"
-  static String time(DateTime date) =>
-      DateFormat('HH:mm').format(date);
+  static String time(DateTime date) => DateFormat('HH:mm').format(date);
 
   /// Relative day label: "Today", "Yesterday", or short date.
   static String relative(DateTime date) {

@@ -31,11 +31,7 @@ class PaperBackgroundPainter extends CustomPainter {
 
     const lineSpacing = 32.0;
     for (double y = lineSpacing; y < size.height; y += lineSpacing) {
-      canvas.drawLine(
-        Offset(24, y),
-        Offset(size.width - 24, y),
-        linePaint,
-      );
+      canvas.drawLine(Offset(24, y), Offset(size.width - 24, y), linePaint);
     }
 
     // — Left margin line (like a real ruled page) —
@@ -43,11 +39,7 @@ class PaperBackgroundPainter extends CustomPainter {
       ..color = AppColors.stampRed.withValues(alpha: 0.15)
       ..strokeWidth = 1.0;
 
-    canvas.drawLine(
-      const Offset(48, 0),
-      Offset(48, size.height),
-      marginPaint,
-    );
+    canvas.drawLine(const Offset(48, 0), Offset(48, size.height), marginPaint);
   }
 
   @override
@@ -62,9 +54,6 @@ class PaperBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: PaperBackgroundPainter(),
-      child: child,
-    );
+    return CustomPaint(painter: PaperBackgroundPainter(), child: child);
   }
 }

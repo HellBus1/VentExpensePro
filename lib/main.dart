@@ -9,6 +9,7 @@ import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
 import 'domain/usecases/calculate_net_position.dart';
 import 'domain/usecases/log_transaction.dart';
+import 'domain/usecases/manage_account.dart';
 import 'presentation/providers/account_provider.dart';
 import 'presentation/providers/transaction_provider.dart';
 import 'presentation/screens/accounts_screen.dart';
@@ -36,6 +37,7 @@ class VentExpenseApp extends StatelessWidget {
           create: (_) => AccountProvider(
             sl<AccountRepository>(),
             sl<CalculateNetPosition>(),
+            sl<ManageAccount>(),
           ),
         ),
         ChangeNotifierProvider(
@@ -66,11 +68,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
 
-  static const _screens = [
-    LedgerScreen(),
-    AccountsScreen(),
-    ReportsScreen(),
-  ];
+  static const _screens = [LedgerScreen(), AccountsScreen(), ReportsScreen()];
 
   static const _titles = ['Ledger', 'Accounts', 'Reports'];
 
@@ -80,9 +78,7 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: Text(
           _titles[_currentIndex],
-          style: AppTypography.titleLarge.copyWith(
-            color: AppColors.inkBlue,
-          ),
+          style: AppTypography.titleLarge.copyWith(color: AppColors.inkBlue),
         ),
       ),
       body: _screens[_currentIndex],
@@ -107,13 +103,15 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Open Quick-Add bottom sheet
-        },
-        tooltip: 'Log Transaction',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _currentIndex == 1
+          ? null // Accounts screen manages its own FAB
+          : FloatingActionButton(
+              onPressed: () {
+                // TODO: Open Quick-Add bottom sheet
+              },
+              tooltip: 'Log Transaction',
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }

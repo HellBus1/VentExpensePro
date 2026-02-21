@@ -49,10 +49,6 @@ class CategoryRepositoryImpl implements CategoryRepository {
   @override
   Future<void> delete(String id) async {
     final db = await LocalDatabase.database;
-    await db.delete(
-      'categories',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 }

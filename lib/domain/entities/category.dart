@@ -22,12 +22,7 @@ class Category extends Equatable {
   });
 
   /// Returns a copy with the given fields replaced.
-  Category copyWith({
-    String? id,
-    String? name,
-    String? icon,
-    bool? isCustom,
-  }) {
+  Category copyWith({String? id, String? name, String? icon, bool? isCustom}) {
     return Category(
       id: id ?? this.id,
       name: name ?? this.name,

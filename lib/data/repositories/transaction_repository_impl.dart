@@ -8,10 +8,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<List<Transaction>> getAll() async {
     final db = await LocalDatabase.database;
-    final maps = await db.query(
-      'transactions',
-      orderBy: 'date_time DESC',
-    );
+    final maps = await db.query('transactions', orderBy: 'date_time DESC');
     return maps.map(TransactionModel.fromMap).toList();
   }
 
@@ -28,18 +25,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
-  Future<List<Transaction>> getByDateRange(
-    DateTime start,
-    DateTime end,
-  ) async {
+  Future<List<Transaction>> getByDateRange(DateTime start, DateTime end) async {
     final db = await LocalDatabase.database;
     final maps = await db.query(
       'transactions',
       where: 'date_time >= ? AND date_time <= ?',
-      whereArgs: [
-        start.millisecondsSinceEpoch,
-        end.millisecondsSinceEpoch,
-      ],
+      whereArgs: [start.millisecondsSinceEpoch, end.millisecondsSinceEpoch],
       orderBy: 'date_time DESC',
     );
     return maps.map(TransactionModel.fromMap).toList();
@@ -82,10 +73,6 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<void> delete(String id) async {
     final db = await LocalDatabase.database;
-    await db.delete(
-      'transactions',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
   }
 }
