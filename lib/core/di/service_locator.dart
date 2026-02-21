@@ -9,6 +9,7 @@ import '../../domain/repositories/transaction_repository.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/usecases/log_transaction.dart';
 import '../../domain/usecases/manage_account.dart';
+import '../../domain/usecases/manage_transaction.dart';
 import '../../domain/usecases/settle_credit_bill.dart';
 
 /// Global service locator instance.
@@ -33,4 +34,11 @@ Future<void> initServiceLocator() async {
         SettleCreditBill(sl<TransactionRepository>(), sl<AccountRepository>()),
   );
   sl.registerFactory(() => ManageAccount(sl<AccountRepository>()));
+  sl.registerFactory(
+    () => ManageTransaction(
+      sl<TransactionRepository>(),
+      sl<AccountRepository>(),
+      sl<LogTransaction>(),
+    ),
+  );
 }
