@@ -2,20 +2,24 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/account.dart';
 import '../../domain/entities/enums.dart';
+import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/account_repository.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/usecases/manage_account.dart';
+import '../../domain/usecases/settle_credit_bill.dart';
 
 /// Manages account state and net position calculation.
 class AccountProvider extends ChangeNotifier {
   final AccountRepository _accountRepository;
   final CalculateNetPosition _calculateNetPosition;
   final ManageAccount _manageAccount;
+  final SettleCreditBill _settleCreditBill;
 
   AccountProvider(
     this._accountRepository,
     this._calculateNetPosition,
     this._manageAccount,
+    this._settleCreditBill,
   );
 
   List<Account> _accounts = [];
@@ -115,6 +119,29 @@ class AccountProvider extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+    }
+  }
+
+  /// Settles a credit card bill and refreshes the list.
+  ///
+  /// Returns the settlement [Transaction] on success, or `null` on failure.
+  Future<Transaction?> settleBill({
+    required String sourceAccountId,
+    required String creditAccountId,
+    required int amount,
+  }) async {
+    try {
+      final txn = await _settleCreditBill.call(
+        sourceAccountId: sourceAccountId,
+        creditAccountId: creditAccountId,
+        amount: amount,
+      );
+      await loadAccounts();
+      return txn;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
     }
   }
 }

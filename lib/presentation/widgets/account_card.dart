@@ -10,16 +10,19 @@ import '../../domain/value_objects/money.dart';
 ///
 /// - Tap to edit
 /// - Long press to archive
+/// - Optional "Pay" button for credit accounts
 class AccountCard extends StatelessWidget {
   final Account account;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onPayBill;
 
   const AccountCard({
     super.key,
     required this.account,
     this.onTap,
     this.onLongPress,
+    this.onPayBill,
   });
 
   @override
@@ -93,6 +96,30 @@ class AccountCard extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // — Pay Bill button (credit accounts only) —
+                if (onPayBill != null) ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Material(
+                      color: AppColors.transferAmber.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      child: InkWell(
+                        onTap: onPayBill,
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Icon(
+                          Icons.payments_outlined,
+                          color: AppColors.transferAmber,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(width: 8),
 
                 // — Balance —
                 Text(

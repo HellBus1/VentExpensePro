@@ -5,11 +5,14 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/enums.dart';
+import '../../domain/value_objects/money.dart';
 import '../painters/paper_background.dart';
 import '../providers/account_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../widgets/account_card.dart';
 import '../widgets/add_edit_account_sheet.dart';
 import '../widgets/net_position_card.dart';
+import '../widgets/pay_bill_sheet.dart';
 
 /// The accounts overview screen — lists asset and liability accounts.
 class AccountsScreen extends StatefulWidget {
@@ -154,6 +157,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
               account: account,
               onTap: () => _showEditSheet(context, account),
               onLongPress: () => _showArchiveDialog(context, account),
+              onPayBill: account.balance > 0
+                  ? () => _showPayBillSheet(context, account)
+                  : null,
             ),
           ),
       ],
@@ -298,6 +304,73 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
     if (confirmed == true && mounted) {
       await provider.archiveAccount(account.id);
+    }
+  }
+
+  Future<void> _showPayBillSheet(
+    BuildContext context,
+    Account creditAccount,
+  ) async {
+    final accProvider = context.read<AccountProvider>();
+    final txnProvider = context.read<TransactionProvider>();
+
+    final assetAccounts = accProvider.assetAccounts
+        .where((a) => !a.isArchived && a.balance > 0)
+        .toList();
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => PayBillSheet(
+        creditAccount: creditAccount,
+        assetAccounts: assetAccounts,
+      ),
+    );
+
+    if (result != null && mounted) {
+      final txn = await accProvider.settleBill(
+        sourceAccountId: result['sourceAccountId'] as String,
+        creditAccountId: result['creditAccountId'] as String,
+        amount: result['amount'] as int,
+      );
+
+      if (txn != null && mounted) {
+        // Refresh ledger so settlement appears
+        await txnProvider.loadTransactions();
+
+        final formatted = Money(
+          cents: txn.amount,
+          currency: creditAccount.currency,
+        ).formatted;
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Settled $formatted ✓'),
+              backgroundColor: AppColors.inkGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } else if (accProvider.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(accProvider.error!),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
     }
   }
 }
