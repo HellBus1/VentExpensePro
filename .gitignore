@@ -45,3 +45,5 @@ app.*.map.json
 
 *.env
 *.freezed.dart
+
+google-services.json

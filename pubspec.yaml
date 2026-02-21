@@ -25,9 +25,10 @@ dependencies:
   uuid: ^4.5.1
   intl: ^0.20.2
 
-  # Google Drive Sync (prep — wired in Phase 3)
+  # Google Drive Sync
   google_sign_in: ^6.2.2
   googleapis: ^14.0.0
+  http: ^1.2.2
 
   # Report Generation (prep — wired in Phase 2)
   pdf: ^3.11.2
