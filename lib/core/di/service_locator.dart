@@ -15,6 +15,11 @@ import '../../domain/usecases/manage_account.dart';
 import '../../domain/usecases/manage_transaction.dart';
 import '../../domain/usecases/settle_credit_bill.dart';
 import '../../domain/usecases/sync_data.dart';
+import '../../domain/usecases/generate_report.dart';
+import '../../domain/repositories/report_repository.dart';
+import '../../data/repositories/report_repository_impl.dart';
+import '../../data/datasources/pdf_report_service.dart';
+import '../../data/datasources/excel_report_service.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -32,6 +37,16 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GoogleDriveService());
   sl.registerLazySingleton<SyncRepository>(
     () => SyncRepositoryImpl(sl<GoogleDriveService>()),
+  );
+
+  // — Reports —
+  sl.registerLazySingleton(() => PdfReportService());
+  sl.registerLazySingleton(() => ExcelReportService());
+  sl.registerLazySingleton<ReportRepository>(
+    () => ReportRepositoryImpl(
+      pdfService: sl<PdfReportService>(),
+      excelService: sl<ExcelReportService>(),
+    ),
   );
 
   // — Use Cases —
@@ -52,4 +67,12 @@ Future<void> initServiceLocator() async {
     ),
   );
   sl.registerFactory(() => SyncData(sl<SyncRepository>()));
+  sl.registerFactory(
+    () => GenerateReport(
+      reportRepository: sl<ReportRepository>(),
+      transactionRepository: sl<TransactionRepository>(),
+      accountRepository: sl<AccountRepository>(),
+      categoryRepository: sl<CategoryRepository>(),
+    ),
+  );
 }

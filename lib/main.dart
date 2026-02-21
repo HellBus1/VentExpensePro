@@ -16,8 +16,10 @@ import 'domain/usecases/manage_account.dart';
 import 'domain/usecases/manage_transaction.dart';
 import 'domain/usecases/settle_credit_bill.dart';
 import 'domain/usecases/sync_data.dart';
+import 'domain/usecases/generate_report.dart';
 import 'presentation/providers/account_provider.dart';
 import 'presentation/providers/category_provider.dart';
+import 'presentation/providers/reports_provider.dart';
 import 'presentation/providers/sync_provider.dart';
 import 'presentation/providers/transaction_provider.dart';
 import 'presentation/screens/accounts_screen.dart';
@@ -64,6 +66,9 @@ class VentExpenseApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => SyncProvider(sl<SyncData>()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ReportsProvider(sl<GenerateReport>()),
         ),
       ],
       child: MaterialApp(
