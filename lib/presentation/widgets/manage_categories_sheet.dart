@@ -168,6 +168,8 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
     final nameController = TextEditingController(text: category?.name ?? '');
     String selectedIcon = category?.icon ?? _availableIcons.first;
 
+    final txnProvider = context.read<TransactionProvider>();
+    final catProvider = context.read<CategoryProvider>();
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (ctx) {
@@ -270,7 +272,6 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
     );
 
     if (result != null && mounted) {
-      final catProvider = context.read<CategoryProvider>();
       if (isEditing) {
         await catProvider.updateCategory(
           category.copyWith(
@@ -287,12 +288,14 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
       }
       // Refresh transaction provider's category cache
       if (mounted) {
-        context.read<TransactionProvider>().loadAll();
+        txnProvider.loadAll();
       }
     }
   }
 
   Future<void> _confirmDelete(BuildContext context, Category cat) async {
+    final catProvider = context.read<CategoryProvider>();
+    final txnProvider = context.read<TransactionProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -315,10 +318,9 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
     );
 
     if (confirmed == true && mounted) {
-      final catProvider = context.read<CategoryProvider>();
       await catProvider.deleteCategory(cat.id);
       if (mounted) {
-        context.read<TransactionProvider>().loadAll();
+        txnProvider.loadAll();
       }
     }
   }

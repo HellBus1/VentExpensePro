@@ -318,6 +318,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         .where((a) => !a.isArchived && a.balance > 0)
         .toList();
 
+    final messenger = ScaffoldMessenger.of(context);
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
@@ -348,7 +349,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         ).formatted;
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text('Settled $formatted ✓'),
               backgroundColor: AppColors.inkGreen,
@@ -360,16 +361,18 @@ class _AccountsScreenState extends State<AccountsScreen> {
           );
         }
       } else if (accProvider.error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(accProvider.error!),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(accProvider.error!),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     }
   }

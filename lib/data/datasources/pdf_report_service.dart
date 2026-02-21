@@ -165,7 +165,7 @@ class PdfReportService {
                     ),
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
         ],
