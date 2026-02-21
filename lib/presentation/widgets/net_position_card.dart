@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/value_objects/money.dart';
+import 'zero_debt_stamp.dart';
 
 /// Displays the Net Position breakdown: Total Assets, Total Liabilities, Net.
 class NetPositionCard extends StatelessWidget {
@@ -16,6 +17,8 @@ class NetPositionCard extends StatelessWidget {
     final assets = breakdown?.totalAssets ?? const Money(cents: 0);
     final liabilities = breakdown?.totalLiabilities ?? const Money(cents: 0);
     final net = breakdown?.netPosition ?? const Money(cents: 0);
+
+    final isZeroDebt = breakdown != null && liabilities.isZero && assets.isPositive;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -36,12 +39,18 @@ class NetPositionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // — Header —
-          Text(
-            'NET POSITION',
-            style: AppTypography.label.copyWith(
-              letterSpacing: 2.0,
-              color: AppColors.inkLight,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'NET POSITION',
+                style: AppTypography.label.copyWith(
+                  letterSpacing: 2.0,
+                  color: AppColors.inkLight,
+                ),
+              ),
+              if (isZeroDebt) const ZeroDebtStamp(),
+            ],
           ),
           const SizedBox(height: 8),
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/category.dart';
+import '../../domain/entities/enums.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/transaction_repository.dart';
@@ -33,6 +34,29 @@ class TransactionProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   DateTimeRange? get dateFilter => _dateFilter;
+
+  // — Quick Stats —
+  
+  int get todaysSpending {
+    final now = DateTime.now();
+    return _transactions
+        .where((t) =>
+            t.type == TransactionType.expense &&
+            t.dateTime.year == now.year &&
+            t.dateTime.month == now.month &&
+            t.dateTime.day == now.day)
+        .fold(0, (sum, t) => sum + t.amount);
+  }
+
+  int get thisMonthsSpending {
+    final now = DateTime.now();
+    return _transactions
+        .where((t) =>
+            t.type == TransactionType.expense &&
+            t.dateTime.year == now.year &&
+            t.dateTime.month == now.month)
+        .fold(0, (sum, t) => sum + t.amount);
+  }
 
   /// Transactions filtered by the active date range (or all if no filter).
   List<Transaction> get filteredTransactions {
