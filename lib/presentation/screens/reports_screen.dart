@@ -64,7 +64,7 @@ class ReportsScreen extends StatelessWidget {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(
+                            colorScheme: const ColorScheme.light(
                               primary: AppColors.inkBlue,
                               onPrimary: AppColors.paper,
                               onSurface: AppColors.inkDark,
@@ -172,9 +172,10 @@ class ReportsScreen extends StatelessWidget {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: () async {
                               final box = context.findRenderObject() as RenderBox?;
-                              Share.shareXFiles(
+                              // ignore: deprecated_member_use
+                              await Share.shareXFiles(
                                 [XFile(reportsProvider.generatedFilePath!)],
                                 text: 'VentExpense Report',
                                 sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
@@ -333,24 +334,28 @@ class ReportsScreen extends StatelessWidget {
     if (!context.mounted) return;
     
     if (provider.status == ReportStatus.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Report generated successfully!'),
-          backgroundColor: AppColors.inkGreen,
-          action: SnackBarAction(
-            label: 'OK',
-            textColor: AppColors.paper,
-            onPressed: () {},
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Report generated successfully!'),
+            backgroundColor: AppColors.inkGreen,
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: AppColors.paper,
+              onPressed: () {},
+            ),
           ),
-        ),
-      );
+        );
+      }
     } else if (provider.status == ReportStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to generate report: ${provider.errorMessage}'),
-          backgroundColor: AppColors.stampRed,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate report: ${provider.errorMessage}'),
+            backgroundColor: AppColors.stampRed,
+          ),
+        );
+      }
     }
   }
 }

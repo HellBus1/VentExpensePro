@@ -176,7 +176,7 @@ class _HomeShellState extends State<HomeShell> {
     if (txnProvider.categories.isEmpty) await txnProvider.loadAll();
     if (accProvider.accounts.isEmpty) await accProvider.loadAccounts();
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -222,9 +222,11 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  void _openSyncSettings(BuildContext context) {
+  void _openSyncSettings(BuildContext context) async {
     // Load current sync status before showing
-    context.read<SyncProvider>().loadStatus();
+    await context.read<SyncProvider>().loadStatus();
+
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
