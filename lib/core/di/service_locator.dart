@@ -1,16 +1,20 @@
 import 'package:get_it/get_it.dart';
 
+import '../../data/datasources/google_drive_service.dart';
 import '../../data/repositories/account_repository_impl.dart';
 import '../../data/repositories/category_repository_impl.dart';
+import '../../data/repositories/sync_repository_impl.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
 import '../../domain/repositories/account_repository.dart';
 import '../../domain/repositories/category_repository.dart';
+import '../../domain/repositories/sync_repository.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/usecases/log_transaction.dart';
 import '../../domain/usecases/manage_account.dart';
 import '../../domain/usecases/manage_transaction.dart';
 import '../../domain/usecases/settle_credit_bill.dart';
+import '../../domain/usecases/sync_data.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -23,6 +27,12 @@ Future<void> initServiceLocator() async {
     () => TransactionRepositoryImpl(),
   );
   sl.registerLazySingleton<CategoryRepository>(() => CategoryRepositoryImpl());
+
+  // — Google Drive Sync —
+  sl.registerLazySingleton(() => GoogleDriveService());
+  sl.registerLazySingleton<SyncRepository>(
+    () => SyncRepositoryImpl(sl<GoogleDriveService>()),
+  );
 
   // — Use Cases —
   sl.registerFactory(() => CalculateNetPosition(sl<AccountRepository>()));
@@ -41,4 +51,5 @@ Future<void> initServiceLocator() async {
       sl<LogTransaction>(),
     ),
   );
+  sl.registerFactory(() => SyncData(sl<SyncRepository>()));
 }

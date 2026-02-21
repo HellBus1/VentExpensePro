@@ -14,15 +14,18 @@ import 'domain/repositories/transaction_repository.dart';
 import 'domain/usecases/calculate_net_position.dart';
 import 'domain/usecases/manage_account.dart';
 import 'domain/usecases/manage_transaction.dart';
+import 'domain/usecases/settle_credit_bill.dart';
+import 'domain/usecases/sync_data.dart';
 import 'presentation/providers/account_provider.dart';
 import 'presentation/providers/category_provider.dart';
+import 'presentation/providers/sync_provider.dart';
 import 'presentation/providers/transaction_provider.dart';
-import 'domain/usecases/settle_credit_bill.dart';
 import 'presentation/screens/accounts_screen.dart';
 import 'presentation/screens/ledger_screen.dart';
 import 'presentation/screens/reports_screen.dart';
 import 'presentation/widgets/manage_categories_sheet.dart';
 import 'presentation/widgets/quick_add_transaction_sheet.dart';
+import 'presentation/widgets/sync_settings_card.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +61,9 @@ class VentExpenseApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => CategoryProvider(sl<CategoryRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SyncProvider(sl<SyncData>()),
         ),
       ],
       child: MaterialApp(
@@ -98,6 +104,7 @@ class _HomeShellState extends State<HomeShell> {
             icon: const Icon(Icons.more_vert, color: AppColors.inkLight),
             onSelected: (value) {
               if (value == 'categories') _openCategoryManager(context);
+              if (value == 'sync') _openSyncSettings(context);
             },
             itemBuilder: (_) => [
               const PopupMenuItem(
@@ -107,6 +114,16 @@ class _HomeShellState extends State<HomeShell> {
                     Icon(Icons.category_outlined, size: 20),
                     SizedBox(width: 8),
                     Text('Manage Categories'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'sync',
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Backup & Sync'),
                   ],
                 ),
               ),
@@ -197,6 +214,29 @@ class _HomeShellState extends State<HomeShell> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => const ManageCategoriesSheet(),
+    );
+  }
+
+  void _openSyncSettings(BuildContext context) {
+    // Load current sync status before showing
+    context.read<SyncProvider>().loadStatus();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: const SyncSettingsCard(),
+      ),
     );
   }
 }
