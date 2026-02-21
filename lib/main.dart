@@ -68,11 +68,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
 
-  static const _screens = [
-    LedgerScreen(),
-    AccountsScreen(),
-    ReportsScreen(),
-  ];
+  static const _screens = [LedgerScreen(), AccountsScreen(), ReportsScreen()];
 
   static const _titles = ['Ledger', 'Accounts', 'Reports'];
 
@@ -82,9 +78,7 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: Text(
           _titles[_currentIndex],
-          style: AppTypography.titleLarge.copyWith(
-            color: AppColors.inkBlue,
-          ),
+          style: AppTypography.titleLarge.copyWith(color: AppColors.inkBlue),
         ),
       ),
       body: _screens[_currentIndex],

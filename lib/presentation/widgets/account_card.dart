@@ -41,10 +41,7 @@ class AccountCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.paper,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.divider,
-                width: 0.5,
-              ),
+              border: Border.all(color: AppColors.divider, width: 0.5),
             ),
             child: Row(
               children: [

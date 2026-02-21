@@ -24,9 +24,7 @@ class LedgerScreen extends StatelessWidget {
                     children: [
                       Text(
                         'NET POSITION',
-                        style: AppTypography.label.copyWith(
-                          letterSpacing: 2.0,
-                        ),
+                        style: AppTypography.label.copyWith(letterSpacing: 2.0),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -114,15 +112,9 @@ class LedgerScreen extends StatelessWidget {
   Widget _buildSummaryItem(String label, String amount, Color color) {
     return Column(
       children: [
-        Text(
-          label.toUpperCase(),
-          style: AppTypography.label,
-        ),
+        Text(label.toUpperCase(), style: AppTypography.label),
         const SizedBox(height: 4),
-        Text(
-          amount,
-          style: AppTypography.amountMedium.copyWith(color: color),
-        ),
+        Text(amount, style: AppTypography.amountMedium.copyWith(color: color)),
       ],
     );
   }

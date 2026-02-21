@@ -10,7 +10,7 @@ class ManageAccount {
   final Uuid _uuid;
 
   ManageAccount(this._accountRepository, {Uuid? uuid})
-      : _uuid = uuid ?? const Uuid();
+    : _uuid = uuid ?? const Uuid();
 
   /// Creates a new account after validation.
   ///

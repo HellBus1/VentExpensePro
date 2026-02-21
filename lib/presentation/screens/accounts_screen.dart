@@ -38,9 +38,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             builder: (context, provider, _) {
               if (provider.isLoading && provider.accounts.isEmpty) {
                 return const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.inkBlue,
-                  ),
+                  child: CircularProgressIndicator(color: AppColors.inkBlue),
                 );
               }
 
@@ -196,10 +194,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             ),
             child: Text(
               count.toString(),
-              style: AppTypography.label.copyWith(
-                color: color,
-                fontSize: 10,
-              ),
+              style: AppTypography.label.copyWith(color: color, fontSize: 10),
             ),
           ),
         ],
@@ -223,6 +218,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   // — Sheet & Dialog Helpers —
 
   Future<void> _showAddSheet(BuildContext context) async {
+    final provider = context.read<AccountProvider>();
     final result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
@@ -234,16 +230,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
 
     if (result != null && result is Map<String, dynamic> && mounted) {
-      await context.read<AccountProvider>().addAccount(
-            name: result['name'] as String,
-            type: result['type'] as AccountType,
-            balance: result['balance'] as int,
-            currency: result['currency'] as String,
-          );
+      await provider.addAccount(
+        name: result['name'] as String,
+        type: result['type'] as AccountType,
+        balance: result['balance'] as int,
+        currency: result['currency'] as String,
+      );
     }
   }
 
   Future<void> _showEditSheet(BuildContext context, Account account) async {
+    final provider = context.read<AccountProvider>();
     final result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
@@ -255,26 +252,20 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
 
     if (result != null && result is Account && mounted) {
-      await context.read<AccountProvider>().updateAccount(result);
+      await provider.updateAccount(result);
     }
   }
 
-  Future<void> _showArchiveDialog(
-    BuildContext context,
-    Account account,
-  ) async {
+  Future<void> _showArchiveDialog(BuildContext context, Account account) async {
+    final provider = context.read<AccountProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.paper,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           'Archive Account',
-          style: AppTypography.titleMedium.copyWith(
-            color: AppColors.inkDark,
-          ),
+          style: AppTypography.titleMedium.copyWith(color: AppColors.inkDark),
         ),
         content: Text(
           'Are you sure you want to archive "${account.name}"?\n\n'
@@ -306,7 +297,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      await context.read<AccountProvider>().archiveAccount(account.id);
+      await provider.archiveAccount(account.id);
     }
   }
 }

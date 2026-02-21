@@ -59,16 +59,10 @@ class SettleCreditBill {
     }
 
     // Deduct from asset
-    await _accountRepository.updateBalance(
-      source.id,
-      source.balance - amount,
-    );
+    await _accountRepository.updateBalance(source.id, source.balance - amount);
 
     // Reduce credit liability
-    await _accountRepository.updateBalance(
-      credit.id,
-      credit.balance - amount,
-    );
+    await _accountRepository.updateBalance(credit.id, credit.balance - amount);
 
     // Log as a settlement transfer
     final settlement = Transaction(

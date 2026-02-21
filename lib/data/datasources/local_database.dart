@@ -18,11 +18,7 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     final path = '$dbPath/$_dbName';
 
-    return openDatabase(
-      path,
-      version: _dbVersion,
-      onCreate: _onCreate,
-    );
+    return openDatabase(path, version: _dbVersion, onCreate: _onCreate);
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -75,14 +71,39 @@ class LocalDatabase {
   static Future<void> _seedCategories(Database db) async {
     const defaults = [
       {'id': 'food', 'name': 'Food', 'icon': 'food', 'is_custom': 0},
-      {'id': 'transport', 'name': 'Transport', 'icon': 'transport', 'is_custom': 0},
+      {
+        'id': 'transport',
+        'name': 'Transport',
+        'icon': 'transport',
+        'is_custom': 0,
+      },
       {'id': 'bills', 'name': 'Bills', 'icon': 'bills', 'is_custom': 0},
-      {'id': 'shopping', 'name': 'Shopping', 'icon': 'shopping', 'is_custom': 0},
-      {'id': 'entertainment', 'name': 'Entertainment', 'icon': 'entertainment', 'is_custom': 0},
+      {
+        'id': 'shopping',
+        'name': 'Shopping',
+        'icon': 'shopping',
+        'is_custom': 0,
+      },
+      {
+        'id': 'entertainment',
+        'name': 'Entertainment',
+        'icon': 'entertainment',
+        'is_custom': 0,
+      },
       {'id': 'health', 'name': 'Health', 'icon': 'health', 'is_custom': 0},
-      {'id': 'education', 'name': 'Education', 'icon': 'education', 'is_custom': 0},
+      {
+        'id': 'education',
+        'name': 'Education',
+        'icon': 'education',
+        'is_custom': 0,
+      },
       {'id': 'other', 'name': 'Other', 'icon': 'other', 'is_custom': 0},
-      {'id': 'settlement', 'name': 'Settlement', 'icon': 'settlement', 'is_custom': 0},
+      {
+        'id': 'settlement',
+        'name': 'Settlement',
+        'icon': 'settlement',
+        'is_custom': 0,
+      },
     ];
 
     final batch = db.batch();

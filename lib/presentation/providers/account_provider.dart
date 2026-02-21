@@ -26,8 +26,7 @@ class AccountProvider extends ChangeNotifier {
   // — Getters —
 
   List<Account> get accounts => _accounts;
-  List<Account> get assetAccounts =>
-      _accounts.where((a) => a.isAsset).toList();
+  List<Account> get assetAccounts => _accounts.where((a) => a.isAsset).toList();
   List<Account> get liabilityAccounts =>
       _accounts.where((a) => a.isLiability).toList();
   NetPositionBreakdown? get breakdown => _breakdown;

@@ -111,14 +111,14 @@ class NetPositionCard extends StatelessWidget {
   Widget _buildDottedDivider() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final dashWidth = 4.0;
-        final dashSpace = 3.0;
-        final dashCount =
-            (constraints.maxWidth / (dashWidth + dashSpace)).floor();
+        const dashWidth = 4.0;
+        const dashSpace = 3.0;
+        final dashCount = (constraints.maxWidth / (dashWidth + dashSpace))
+            .floor();
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(dashCount, (_) {
-            return SizedBox(
+            return const SizedBox(
               width: dashWidth,
               height: 1,
               child: DecoratedBox(

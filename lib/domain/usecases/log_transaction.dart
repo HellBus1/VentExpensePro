@@ -19,12 +19,11 @@ class LogTransaction {
   /// Throws [ArgumentError] if the referenced accounts don't exist.
   Future<Transaction> call(Transaction transaction) async {
     // Validate source account exists
-    final sourceAccount =
-        await _accountRepository.getById(transaction.accountId);
+    final sourceAccount = await _accountRepository.getById(
+      transaction.accountId,
+    );
     if (sourceAccount == null) {
-      throw ArgumentError(
-        'Source account not found: ${transaction.accountId}',
-      );
+      throw ArgumentError('Source account not found: ${transaction.accountId}');
     }
 
     switch (transaction.type) {
@@ -53,8 +52,9 @@ class LogTransaction {
         if (transaction.toAccountId == null) {
           throw ArgumentError('Transfer requires a destination account');
         }
-        final destAccount =
-            await _accountRepository.getById(transaction.toAccountId!);
+        final destAccount = await _accountRepository.getById(
+          transaction.toAccountId!,
+        );
         if (destAccount == null) {
           throw ArgumentError(
             'Destination account not found: ${transaction.toAccountId}',

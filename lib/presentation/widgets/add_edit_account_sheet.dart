@@ -150,9 +150,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                             Text(
                               _labelForType(type),
                               style: AppTypography.label.copyWith(
-                                color: isSelected
-                                    ? color
-                                    : AppColors.disabled,
+                                color: isSelected ? color : AppColors.disabled,
                                 fontSize: 10,
                               ),
                             ),
@@ -174,9 +172,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                   width: 80,
                   child: TextFormField(
                     controller: _currencyController,
-                    decoration: const InputDecoration(
-                      labelText: 'Currency',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Currency'),
                     textAlign: TextAlign.center,
                     textCapitalization: TextCapitalization.characters,
                     enabled: !_isEditing,
@@ -192,9 +188,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                       hintText: '0',
                     ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: AppTypography.amountMedium,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -230,9 +224,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                     color: AppColors.paper,
                   ),
                 ),
-                child: Text(
-                  _isEditing ? 'Save Changes' : 'Create Account',
-                ),
+                child: Text(_isEditing ? 'Save Changes' : 'Create Account'),
               ),
             ),
           ],
