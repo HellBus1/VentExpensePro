@@ -10,6 +10,7 @@ import '../providers/account_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/net_position_card.dart';
 import '../widgets/quick_add_transaction_sheet.dart';
+import '../widgets/quick_stats_strip.dart';
 import '../widgets/receipt_card.dart';
 import '../widgets/receipt_date_header.dart';
 
@@ -52,6 +53,17 @@ class _LedgerScreenState extends State<LedgerScreen> {
                   child: accProvider.breakdown != null
                       ? NetPositionCard(breakdown: accProvider.breakdown!)
                       : const SizedBox.shrink(),
+                ),
+              ),
+
+              // — Quick Stats Strip —
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: QuickStatsStrip(
+                    todaysSpending: txnProvider.todaysSpending,
+                    thisMonthsSpending: txnProvider.thisMonthsSpending,
+                  ),
                 ),
               ),
 
