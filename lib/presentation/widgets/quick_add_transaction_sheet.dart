@@ -82,14 +82,15 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -218,7 +219,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ——— Sub-widgets ———
@@ -466,7 +467,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
       context: context,
       initialDate: _dateTime,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime(DateTime.now().year + 5),
     );
     if (date == null || !mounted) return;
 

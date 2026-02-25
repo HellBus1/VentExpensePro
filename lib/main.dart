@@ -92,7 +92,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
 
-  static const _screens = [LedgerScreen(), AccountsScreen(), ReportsScreen()];
+
 
   static const _titles = ['Ledger', 'Accounts', 'Reports'];
 
@@ -136,7 +136,16 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: RepaintBoundary(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: const [
+            LedgerScreen(),
+            AccountsScreen(),
+            ReportsScreen(),
+          ],
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
