@@ -60,7 +60,7 @@ class ReportsScreen extends StatelessWidget {
                             )
                           : null,
                       firstDate: DateTime(2020),
-                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                      lastDate: DateTime(DateTime.now().year + 5),
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(

@@ -28,7 +28,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
     super.initState();
     // Load accounts on first build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AccountProvider>().loadAccounts();
+      final accProv = context.read<AccountProvider>();
+      if (accProv.accounts.isEmpty) accProv.loadAccounts();
     });
   }
 

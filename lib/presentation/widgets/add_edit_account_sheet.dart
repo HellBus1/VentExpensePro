@@ -52,14 +52,15 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Form(
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -230,7 +231,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void _submit() {

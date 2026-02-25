@@ -34,7 +34,8 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CategoryProvider>().loadCategories();
+      final catProv = context.read<CategoryProvider>();
+      if (catProv.categories.isEmpty) catProv.loadCategories();
     });
   }
 
@@ -48,7 +49,8 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
       builder: (context, scrollController) {
         return Consumer<CategoryProvider>(
           builder: (context, provider, _) {
-            return Column(
+            return RepaintBoundary(
+              child: Column(
               children: [
                 // — Handle bar —
                 Padding(
@@ -113,7 +115,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
                         ),
                 ),
               ],
-            );
+            ));
           },
         );
       },

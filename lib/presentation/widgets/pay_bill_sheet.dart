@@ -108,14 +108,15 @@ class _PayBillSheetState extends State<PayBillSheet> {
       currency: widget.creditAccount.currency,
     );
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -378,6 +379,6 @@ class _PayBillSheetState extends State<PayBillSheet> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

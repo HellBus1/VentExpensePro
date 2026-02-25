@@ -54,6 +54,16 @@ class PaperBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: PaperBackgroundPainter(), child: child);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RepaintBoundary(
+          child: CustomPaint(
+            painter: PaperBackgroundPainter(),
+          ),
+        ),
+        child,
+      ],
+    );
   }
 }
