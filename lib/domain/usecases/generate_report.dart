@@ -17,7 +17,7 @@ class GenerateReport {
     required this.categoryRepository,
   });
 
-  /// Generates a report of the specified [type] ('pdf' or 'excel').
+  /// Generates a report of the specified [type] ('pdf').
   Future<String> call({
     required String type,
     String? accountId,
@@ -44,24 +44,13 @@ class GenerateReport {
     }).toList();
 
     // 3. Delegate to repository
-    if (type.toLowerCase() == 'pdf') {
-      return reportRepository.generatePdf(
-        transactions: filteredTransactions,
-        accounts: accounts,
-        categories: categories,
-        accountId: accountId,
-        startDate: startDate,
-        endDate: endDate,
-      );
-    } else {
-      return reportRepository.generateExcel(
-        transactions: filteredTransactions,
-        accounts: accounts,
-        categories: categories,
-        accountId: accountId,
-        startDate: startDate,
-        endDate: endDate,
-      );
-    }
+    return reportRepository.generatePdf(
+      transactions: filteredTransactions,
+      accounts: accounts,
+      categories: categories,
+      accountId: accountId,
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 }

@@ -19,7 +19,6 @@ import '../../domain/usecases/generate_report.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../../data/repositories/report_repository_impl.dart';
 import '../../data/datasources/pdf_report_service.dart';
-import '../../data/datasources/excel_report_service.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -41,11 +40,9 @@ Future<void> initServiceLocator() async {
 
   // — Reports —
   sl.registerLazySingleton(() => PdfReportService());
-  sl.registerLazySingleton(() => ExcelReportService());
   sl.registerLazySingleton<ReportRepository>(
     () => ReportRepositoryImpl(
       pdfService: sl<PdfReportService>(),
-      excelService: sl<ExcelReportService>(),
     ),
   );
 

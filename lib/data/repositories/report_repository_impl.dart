@@ -1,4 +1,3 @@
-import '../datasources/excel_report_service.dart';
 import '../datasources/pdf_report_service.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/category.dart';
@@ -7,11 +6,9 @@ import '../../domain/repositories/report_repository.dart';
 
 class ReportRepositoryImpl implements ReportRepository {
   final PdfReportService pdfService;
-  final ExcelReportService excelService;
 
   ReportRepositoryImpl({
     required this.pdfService,
-    required this.excelService,
   });
 
   @override
@@ -24,25 +21,6 @@ class ReportRepositoryImpl implements ReportRepository {
     DateTime? endDate,
   }) {
     return pdfService.generate(
-      transactions: transactions,
-      accounts: accounts,
-      categories: categories,
-      accountId: accountId,
-      startDate: startDate,
-      endDate: endDate,
-    );
-  }
-
-  @override
-  Future<String> generateExcel({
-    required List<Transaction> transactions,
-    required List<Account> accounts,
-    required List<Category> categories,
-    String? accountId,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) {
-    return excelService.generate(
       transactions: transactions,
       accounts: accounts,
       categories: categories,
