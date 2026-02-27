@@ -123,8 +123,6 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    const isSyncMenuEnabled = false;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -149,17 +147,17 @@ class _HomeShellState extends State<HomeShell> {
                   ],
                 ),
               ),
-              if (isSyncMenuEnabled)
-                const PopupMenuItem(
-                  value: 'sync',
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_outlined, size: 20),
-                      SizedBox(width: 8),
-                      Text('Backup & Sync'),
-                    ],
-                  ),
-                ),
+              // TODO: Re-enable when Backup & Sync is ready
+              // const PopupMenuItem(
+              //   value: 'sync',
+              //   child: Row(
+              //     children: [
+              //       Icon(Icons.cloud_outlined, size: 20),
+              //       SizedBox(width: 8),
+              //       Text('Backup & Sync'),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         ],
