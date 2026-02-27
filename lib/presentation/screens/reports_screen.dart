@@ -243,8 +243,9 @@ class ReportsScreen extends StatelessWidget {
     ReportsProvider rProvider,
     TransactionProvider tProvider,
   ) {
-    if (rProvider.status == ReportStatus.loading || tProvider.isLoading)
+    if (rProvider.status == ReportStatus.loading || tProvider.isLoading) {
       return const SizedBox.shrink();
+    }
 
     final transactions = tProvider.transactions.where((t) {
       final matchAccount =
