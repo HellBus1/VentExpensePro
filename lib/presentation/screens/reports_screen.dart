@@ -259,8 +259,6 @@ class ReportsScreen extends StatelessWidget {
               ));
       return matchAccount && matchDate;
     }).toList();
-    print("First 4 transactions:");
-    print(transactions.take(4).toList());
 
     if (transactions.isEmpty) {
       return Container(
@@ -287,8 +285,6 @@ class ReportsScreen extends StatelessWidget {
             (t.amount as num).toDouble();
       }
     }
-    print("Category mapping:");
-    print(expenseByCategory.entries.map((e) => '${e.key}: ${e.value}').join(', '));
     final netBalance = totalIncome - totalExpense;
 
     final chartColors = [
