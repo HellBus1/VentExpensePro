@@ -4,12 +4,12 @@ DELETE FROM accounts;
 
 -- Accounts
 INSERT INTO accounts (id, name, type, balance, currency, is_archived, created_at) VALUES 
-('acc_bca_1', 'BCA Payroll', 0, 15000000, 'IDR', 0, 1772192903263), 
-('acc_mandiri_1', 'Mandiri Savings', 0, 8000000, 'IDR', 0, 1772192903263), 
-('acc_cash_1', 'Main Wallet', 1, 500000, 'IDR', 0, 1772192903263), 
-('acc_cash_2', 'Emergency Stash', 1, 1500000, 'IDR', 0, 1772192903263), 
-('acc_credit_1', 'Tokopedia Card', 2, 2500000, 'IDR', 0, 1772192903263),
-('acc_credit_2', 'Traveloka PayLater', 2, 800000, 'IDR', 0, 1772192903263);
+('acc_bca_1', 'BCA Payroll', 0, 15000000, 'IDR', 0, 1772217934680), 
+('acc_mandiri_1', 'Mandiri Savings', 0, 8000000, 'IDR', 0, 1772217934680), 
+('acc_cash_1', 'Main Wallet', 1, 500000, 'IDR', 0, 1772217934680), 
+('acc_cash_2', 'Emergency Stash', 1, 1500000, 'IDR', 0, 1772217934680), 
+('acc_credit_1', 'Tokopedia Card', 2, 2500000, 'IDR', 0, 1772217934680),
+('acc_credit_2', 'Traveloka PayLater', 2, 800000, 'IDR', 0, 1772217934680);
 
 -- Transactions
 -- Categories available: 'food', 'transport', 'bills', 'shopping', 'entertainment', 'health', 'education', 'other', 'settlement'

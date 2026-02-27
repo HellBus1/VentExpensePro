@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/enums.dart';
+import '../providers/currency_provider.dart';
 
 /// Bottom sheet for creating or editing an account.
 ///
@@ -23,7 +25,6 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _balanceController;
-  late final TextEditingController _currencyController;
   late AccountType _selectedType;
 
   bool get _isEditing => widget.existingAccount != null;
@@ -36,9 +37,6 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
     _balanceController = TextEditingController(
       text: account != null ? account.balance.toString() : '',
     );
-    _currencyController = TextEditingController(
-      text: account?.currency ?? 'IDR',
-    );
     _selectedType = account?.type ?? AccountType.debit;
   }
 
@@ -46,7 +44,6 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
   void dispose() {
     _nameController.dispose();
     _balanceController.dispose();
-    _currencyController.dispose();
     super.dispose();
   }
 
@@ -168,15 +165,22 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
             // — Balance field —
             Row(
               children: [
-                // Currency
-                SizedBox(
-                  width: 80,
-                  child: TextFormField(
-                    controller: _currencyController,
-                    decoration: const InputDecoration(labelText: 'Currency'),
-                    textAlign: TextAlign.center,
-                    textCapitalization: TextCapitalization.characters,
-                    enabled: !_isEditing,
+                // Currency symbol (read-only, from global setting)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.paperElevated,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.divider, width: 0.5),
+                  ),
+                  child: Text(
+                    context.watch<CurrencyProvider>().symbol.trim(),
+                    style: AppTypography.amountMedium.copyWith(
+                      color: AppColors.inkLight,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -239,7 +243,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
 
     final name = _nameController.text.trim();
     final balance = int.parse(_balanceController.text.trim());
-    final currency = _currencyController.text.trim().toUpperCase();
+    final currency = context.read<CurrencyProvider>().currency;
 
     if (_isEditing) {
       final updated = widget.existingAccount!.copyWith(

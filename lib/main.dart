@@ -22,6 +22,7 @@ import 'domain/usecases/sync_data.dart';
 import 'domain/usecases/generate_report.dart';
 import 'presentation/providers/account_provider.dart';
 import 'presentation/providers/category_provider.dart';
+import 'presentation/providers/currency_provider.dart';
 import 'presentation/providers/reports_provider.dart';
 import 'presentation/providers/sync_provider.dart';
 import 'presentation/providers/transaction_provider.dart';
@@ -86,6 +87,9 @@ class VentExpenseApp extends StatelessWidget {
           create: (_) => CategoryProvider(sl<CategoryRepository>()),
         ),
         ChangeNotifierProvider(
+          create: (_) => CurrencyProvider()..loadCurrency(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => SyncProvider(sl<SyncData>()),
         ),
         ChangeNotifierProvider(
@@ -119,6 +123,8 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    const isSyncMenuEnabled = false;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -143,16 +149,17 @@ class _HomeShellState extends State<HomeShell> {
                   ],
                 ),
               ),
-              const PopupMenuItem(
-                value: 'sync',
-                child: Row(
-                  children: [
-                    Icon(Icons.cloud_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Backup & Sync'),
-                  ],
+              if (isSyncMenuEnabled)
+                const PopupMenuItem(
+                  value: 'sync',
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_outlined, size: 20),
+                      SizedBox(width: 8),
+                      Text('Backup & Sync'),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ],

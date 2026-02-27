@@ -3,13 +3,13 @@ import 'package:intl/intl.dart';
 
 /// An immutable representation of a monetary amount.
 ///
-/// Internally stored as an [int] in the smallest currency unit (e.g. cents)
+/// Internally stored as an [int] in the smallest currency unit
 /// to avoid floating-point precision issues.
 class Money extends Equatable {
-  /// The amount in the smallest currency unit (e.g. 15000 = Rp 150.00).
+  /// The amount in the smallest currency unit.
   final int cents;
 
-  /// ISO 4217 currency code.
+  /// ISO 4217 currency code (e.g. 'IDR', 'USD', 'EUR').
   final String currency;
 
   const Money({required this.cents, this.currency = 'IDR'});
@@ -22,14 +22,15 @@ class Money extends Equatable {
   /// The amount as a double (e.g. 15000 → 150.00).
   double get asDouble => cents / 100.0;
 
-  /// Formatted display string (e.g. "Rp 150.00" or "$1,500.00").
+  /// Formatted display string using the currency's symbol and locale.
   String get formatted {
     final format = NumberFormat.currency(
       locale: _localeForCurrency(currency),
       symbol: _symbolForCurrency(currency),
-      decimalDigits: currency == 'IDR' ? 0 : 2,
+      decimalDigits: _decimalDigits(currency),
     );
-    return format.format(currency == 'IDR' ? cents : asDouble);
+    final value = _decimalDigits(currency) == 0 ? cents : asDouble;
+    return format.format(value);
   }
 
   // — Arithmetic —
@@ -52,25 +53,43 @@ class Money extends Equatable {
 
   // — Helpers —
 
+  static int _decimalDigits(String currency) {
+    switch (currency) {
+      case 'IDR':
+      case 'JPY':
+      case 'KRW':
+      case 'VND':
+        return 0;
+      default:
+        return 2;
+    }
+  }
+
   static String _localeForCurrency(String currency) {
     switch (currency) {
       case 'IDR':
         return 'id_ID';
       case 'USD':
         return 'en_US';
+      case 'EUR':
+        return 'de_DE';
+      case 'GBP':
+        return 'en_GB';
+      case 'JPY':
+        return 'ja_JP';
       default:
         return 'en_US';
     }
   }
 
   static String _symbolForCurrency(String currency) {
-    switch (currency) {
-      case 'IDR':
-        return 'Rp ';
-      case 'USD':
-        return '\$';
-      default:
-        return currency;
+    try {
+      return NumberFormat.simpleCurrency(
+        locale: _localeForCurrency(currency),
+        name: currency,
+      ).currencySymbol;
+    } catch (_) {
+      return '$currency ';
     }
   }
 
