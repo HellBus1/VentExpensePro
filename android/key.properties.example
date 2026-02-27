@@ -1,0 +1,8 @@
+## Release signing configuration for VentExpensePro
+## Copy this file as `key.properties` and fill in your values.
+## ⚠️ NEVER commit `key.properties` to version control!
+
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=your_key_alias
+storeFile=/path/to/your/keystore.jks

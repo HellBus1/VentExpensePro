@@ -45,6 +45,26 @@
   @com.google.gson.annotations.SerializedName <fields>;
 }
 
+# ── SharedPreferences ────────────────────────────────────────────────────────
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
+-keep class androidx.datastore.** { *; }
+-dontwarn androidx.datastore.**
+
+# ── SQFlite (SQLite) ─────────────────────────────────────────────────────────
+-keep class com.tekartik.sqflite.** { *; }
+-dontwarn com.tekartik.sqflite.**
+
+# ── Path Provider ────────────────────────────────────────────────────────────
+-keep class io.flutter.plugins.pathprovider.** { *; }
+
+# ── Share Plus ───────────────────────────────────────────────────────────────
+-keep class dev.fluttercommunity.plus.share.** { *; }
+-dontwarn dev.fluttercommunity.plus.share.**
+
+# ── PDF Generation ───────────────────────────────────────────────────────────
+-keep class com.ril.pdf_box.** { *; }
+-dontwarn com.ril.pdf_box.**
+
 # ── Kotlin ───────────────────────────────────────────────────────────────────
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**

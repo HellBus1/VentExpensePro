@@ -18,7 +18,32 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     final path = '$dbPath/$_dbName';
 
-    return openDatabase(path, version: _dbVersion, onCreate: _onCreate);
+    return openDatabase(
+      path,
+      version: _dbVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  /// Handles sequential schema migrations.
+  ///
+  /// Each version bump gets its own block. Migrations run in order,
+  /// so a user jumping from v1 → v3 will execute both v1→v2 and v2→v3.
+  ///
+  /// Example — when you need to add a column in the future:
+  /// ```dart
+  /// if (oldVersion < 2) {
+  ///   await db.execute('ALTER TABLE accounts ADD COLUMN color TEXT');
+  /// }
+  /// if (oldVersion < 3) {
+  ///   await db.execute('ALTER TABLE transactions ADD COLUMN tag TEXT');
+  /// }
+  /// ```
+  static Future<void> _onUpgrade(
+      Database db, int oldVersion, int newVersion) async {
+    // — Future migrations go here —
+    // if (oldVersion < 2) { ... }
   }
 
   static Future<void> _onCreate(Database db, int version) async {
