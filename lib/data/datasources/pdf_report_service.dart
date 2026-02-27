@@ -48,6 +48,63 @@ class PdfReportService {
         ? '${formatter.format(startDate)} - ${formatter.format(endDate)}'
         : 'All Time';
 
+    // Calculate Statistics
+    double totalIncome = 0;
+    double totalExpense = 0;
+    final Map<String, double> expenseByCategory = {};
+
+    for (final t in transactions) {
+      if (t.type == TransactionType.income) {
+        totalIncome += t.amount;
+      } else if (t.type == TransactionType.expense) {
+        totalExpense += t.amount;
+        expenseByCategory[t.categoryId] = (expenseByCategory[t.categoryId] ?? 0) + t.amount;
+      }
+    }
+    final netBalance = totalIncome - totalExpense;
+
+    // Prepare Chart Data
+    final List<pw.Dataset> chartDatasets = [];
+    final List<PdfColor> chartColors = [
+      _inkBlue, _inkGreen, _stampRed, PdfColors.amber700, PdfColors.teal, PdfColors.purple,
+    ];
+    int colorIndex = 0;
+
+    final List<pw.Widget> legendWidgets = [];
+
+    expenseByCategory.forEach((categoryId, amount) {
+      final category = categories.firstWhere(
+        (c) => c.id == categoryId,
+        orElse: () => const CategoryModel(id: '?', name: 'Unknown', icon: '?'),
+      );
+      final color = chartColors[colorIndex % chartColors.length];
+      chartDatasets.add(
+        pw.PieDataSet(
+          value: amount,
+          color: color,
+          legend: null, // Disable built-in legend to avoid squishing
+        ),
+      );
+      legendWidgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 4),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            mainAxisSize: pw.MainAxisSize.min,
+            children: [
+              pw.Container(width: 8, height: 8, decoration: pw.BoxDecoration(color: color, shape: pw.BoxShape.circle)),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                '${category.name} (${currencyFormatter.format(amount)})',
+                style: pw.TextStyle(font: loraRegular, fontSize: 9, color: _inkDark),
+              ),
+            ],
+          ),
+        ),
+      );
+      colorIndex++;
+    });
+
     pdf.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
@@ -116,6 +173,81 @@ class PdfReportService {
                 ),
               ],
             ),
+            pw.SizedBox(height: 16),
+
+            // Statistics & Chart Section
+            if (transactions.isNotEmpty)
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  border: pw.Border.all(color: _inkLight, width: 0.5),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Summary Numbers
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          _label('TOTAL INCOME', loraBold),
+                          pw.Text('+${currencyFormatter.format(totalIncome)}', style: pw.TextStyle(font: monoRegular, fontSize: 14, color: _inkGreen)),
+                          pw.SizedBox(height: 12),
+                          _label('TOTAL EXPENSE', loraBold),
+                          pw.Text('-${currencyFormatter.format(totalExpense)}', style: pw.TextStyle(font: monoRegular, fontSize: 14, color: _stampRed)),
+                          pw.SizedBox(height: 12),
+                          pw.Divider(color: _inkLight, thickness: 0.5),
+                          pw.SizedBox(height: 8),
+                          _label('NET BALANCE', loraBold),
+                          pw.Text(
+                            '${netBalance >= 0 ? '+' : ''}${currencyFormatter.format(netBalance)}',
+                            style: pw.TextStyle(
+                              font: monoRegular,
+                              fontSize: 16,
+                              fontWeight: pw.FontWeight.bold,
+                              color: netBalance >= 0 ? _inkGreen : _stampRed,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(width: 24),
+                    // Pie Chart (Expense Breakdown)
+                    if (expenseByCategory.isNotEmpty) ...[
+                      pw.Expanded(
+                        flex: 1,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            _label('BREAKDOWN', loraBold),
+                            pw.SizedBox(height: 8),
+                            pw.SizedBox(
+                              height: 80,
+                              width: 80,
+                              child: pw.Chart(
+                                grid: pw.PieGrid(),
+                                datasets: chartDatasets,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      pw.SizedBox(width: 16),
+                      pw.Expanded(
+                        flex: 2,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          children: legendWidgets,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             pw.SizedBox(height: 24),
           ],
         ),

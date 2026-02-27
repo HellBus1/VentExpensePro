@@ -11,16 +11,6 @@ import 'package:vent_expense_pro/domain/usecases/generate_report.dart';
 
 class FakeReportRepository implements ReportRepository {
   @override
-  Future<String> generateExcel({
-    required List<Transaction> transactions,
-    required List<Account> accounts,
-    required List<Category> categories,
-    String? accountId,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async => 'excel_path';
-
-  @override
   Future<String> generatePdf({
     required List<Transaction> transactions,
     required List<Account> accounts,
@@ -136,10 +126,5 @@ void main() {
     );
 
     expect(path, 'pdf_path');
-  });
-
-  test('should return excel path', () async {
-    final path = await generateReport(type: 'excel');
-    expect(path, 'excel_path');
   });
 }
