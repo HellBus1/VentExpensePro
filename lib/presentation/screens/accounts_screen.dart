@@ -8,6 +8,7 @@ import '../../domain/entities/enums.dart';
 import '../../domain/value_objects/money.dart';
 import '../painters/paper_background.dart';
 import '../providers/account_provider.dart';
+import '../providers/currency_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/account_card.dart';
 import '../widgets/add_edit_account_sheet.dart';
@@ -28,7 +29,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
     super.initState();
     // Load accounts on first build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AccountProvider>().loadAccounts();
+      final accProv = context.read<AccountProvider>();
+      if (accProv.accounts.isEmpty) accProv.loadAccounts();
     });
   }
 
@@ -37,20 +39,33 @@ class _AccountsScreenState extends State<AccountsScreen> {
     return PaperBackground(
       child: Stack(
         children: [
-          Consumer<AccountProvider>(
-            builder: (context, provider, _) {
-              if (provider.isLoading && provider.accounts.isEmpty) {
-                return const Center(
-                  child: CircularProgressIndicator(color: AppColors.inkBlue),
-                );
-              }
+          Column(
+            children: [
+              // — Currency Selector (always visible) —
+              const SizedBox(height: 8),
+              _buildCurrencySelector(),
+              const SizedBox(height: 8),
 
-              if (provider.accounts.isEmpty) {
-                return _buildEmptyState();
-              }
+              // — Account content —
+              Expanded(
+                child: Consumer<AccountProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.isLoading && provider.accounts.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.inkBlue),
+                      );
+                    }
 
-              return _buildAccountsList(provider);
-            },
+                    if (provider.accounts.isEmpty) {
+                      return _buildEmptyState();
+                    }
+
+                    return _buildAccountsList(provider);
+                  },
+                ),
+              ),
+            ],
           ),
 
           // — FAB —
@@ -222,6 +237,108 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   // — Sheet & Dialog Helpers —
+
+  Widget _buildCurrencySelector() {
+    return Consumer2<CurrencyProvider, AccountProvider>(
+      builder: (context, currencyProv, accProv, _) {
+        final isLocked = accProv.accounts.isNotEmpty;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.paperElevated,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.divider, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isLocked ? Icons.lock_outline : Icons.currency_exchange,
+                  size: 18,
+                  color: isLocked ? AppColors.disabled : AppColors.inkBlue,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'CURRENCY',
+                  style: AppTypography.label.copyWith(
+                    letterSpacing: 1.5,
+                    color: AppColors.inkLight,
+                  ),
+                ),
+                const Spacer(),
+                if (isLocked)
+                  // Show the currency as static text when locked
+                  GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Currency is locked after adding accounts. '
+                            'Delete all accounts to change currency.',
+                          ),
+                          backgroundColor: AppColors.inkLight,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          currencyProv.currency,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.disabled,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.info_outline,
+                          size: 14,
+                          color: AppColors.disabled,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  // Editable dropdown when no accounts exist
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: currencyProv.currency,
+                      isDense: true,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.inkDark,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: AppColors.inkBlue,
+                      ),
+                      items: CurrencyProvider.supported.map((c) {
+                        return DropdownMenuItem(
+                          value: c.code,
+                          child: Text(c.label),
+                        );
+                      }).toList(),
+                      onChanged: (code) {
+                        if (code != null) {
+                          currencyProv.setCurrency(code);
+                        }
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _showAddSheet(BuildContext context) async {
     final provider = context.read<AccountProvider>();

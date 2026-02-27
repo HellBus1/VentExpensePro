@@ -30,8 +30,11 @@ class _LedgerScreenState extends State<LedgerScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TransactionProvider>().loadAll();
-      context.read<AccountProvider>().loadAccounts();
+      final txnProv = context.read<TransactionProvider>();
+      final accProv = context.read<AccountProvider>();
+      
+      if (txnProv.transactions.isEmpty) txnProv.loadAll();
+      if (accProv.accounts.isEmpty) accProv.loadAccounts();
     });
   }
 
@@ -327,7 +330,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime(DateTime.now().year + 5),
       initialDateRange: provider.dateFilter,
       builder: (context, child) {
         return Theme(

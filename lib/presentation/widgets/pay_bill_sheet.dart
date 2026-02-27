@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/value_objects/money.dart';
+import '../providers/currency_provider.dart';
 
 /// Bottom sheet for one-touch credit card bill settlement.
 ///
@@ -108,14 +110,15 @@ class _PayBillSheetState extends State<PayBillSheet> {
       currency: widget.creditAccount.currency,
     );
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -318,7 +321,7 @@ class _PayBillSheetState extends State<PayBillSheet> {
               fontSize: 24,
             ),
             decoration: InputDecoration(
-              prefixText: 'Rp ',
+              prefixText: '${context.read<CurrencyProvider>().symbol} ',
               prefixStyle: AppTypography.amountLarge.copyWith(
                 color: AppColors.inkLight,
                 fontSize: 24,
@@ -378,6 +381,6 @@ class _PayBillSheetState extends State<PayBillSheet> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
@@ -7,6 +8,7 @@ import '../../core/utils/category_icon_mapper.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/enums.dart';
+import '../providers/currency_provider.dart';
 
 /// Quick-add bottom sheet: Category → Amount → Source → Log It ✓
 ///
@@ -47,6 +49,11 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
 
   bool get _isEditing => widget.initialValues != null;
 
+  /// Resolves the currency symbol from the global CurrencyProvider.
+  String get _currencySymbol {
+    return context.read<CurrencyProvider>().symbol.trim();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -82,14 +89,15 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -218,7 +226,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ——— Sub-widgets ———
@@ -337,7 +345,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
       child: Row(
         children: [
           Text(
-            'Rp',
+            _currencySymbol,
             style: AppTypography.amountMedium.copyWith(
               color: AppColors.inkLight,
             ),
@@ -466,7 +474,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
       context: context,
       initialDate: _dateTime,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime(DateTime.now().year + 5),
     );
     if (date == null || !mounted) return;
 

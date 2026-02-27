@@ -14,13 +14,4 @@ abstract class ReportRepository {
     DateTime? endDate,
   });
 
-  /// Generates an Excel spreadsheet. Returns the file path of the generated report.
-  Future<String> generateExcel({
-    required List<Transaction> transactions,
-    required List<Account> accounts,
-    required List<Category> categories,
-    String? accountId,
-    DateTime? startDate,
-    DateTime? endDate,
-  });
 }

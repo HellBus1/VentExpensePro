@@ -27,6 +27,13 @@ class TransactionProvider extends ChangeNotifier {
   /// Active date filter. Null means "show all".
   DateTimeRange? _dateFilter;
 
+  // — Cached Computations —
+  int _todaysSpending = 0;
+  int _thisMonthsSpending = 0;
+  List<Transaction> _filteredTransactions = [];
+  Map<DateTime, List<Transaction>> _filteredGroupedByDate = {};
+  final Map<DateTime, List<Transaction>> _groupedByDate = {};
+
   // — Getters —
 
   List<Transaction> get transactions => _transactions;
@@ -35,32 +42,62 @@ class TransactionProvider extends ChangeNotifier {
   String? get error => _error;
   DateTimeRange? get dateFilter => _dateFilter;
 
-  // — Quick Stats —
-  
-  int get todaysSpending {
-    final now = DateTime.now();
-    return _transactions
-        .where((t) =>
-            t.type == TransactionType.expense &&
-            t.dateTime.year == now.year &&
-            t.dateTime.month == now.month &&
-            t.dateTime.day == now.day)
-        .fold(0, (sum, t) => sum + t.amount);
+  int get todaysSpending => _todaysSpending;
+  int get thisMonthsSpending => _thisMonthsSpending;
+  List<Transaction> get filteredTransactions => _filteredTransactions;
+  Map<DateTime, List<Transaction>> get filteredGroupedByDate => _filteredGroupedByDate;
+  Map<DateTime, List<Transaction>> get groupedByDate => _groupedByDate;
+
+  /// Returns a category by [id] from the in-memory list, or `null`.
+  Category? getCategoryById(String id) {
+    try {
+      return _categories.firstWhere((c) => c.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 
-  int get thisMonthsSpending {
+  // — Recomputation Logic —
+
+  void _recomputeStats() {
     final now = DateTime.now();
-    return _transactions
-        .where((t) =>
-            t.type == TransactionType.expense &&
-            t.dateTime.year == now.year &&
-            t.dateTime.month == now.month)
-        .fold(0, (sum, t) => sum + t.amount);
+    int todaySum = 0;
+    int thisMonthSum = 0;
+
+    _groupedByDate.clear();
+
+    for (final txn in _transactions) {
+      if (txn.type == TransactionType.expense) {
+        if (txn.dateTime.year == now.year && txn.dateTime.month == now.month) {
+          thisMonthSum += txn.amount;
+          if (txn.dateTime.day == now.day) {
+            todaySum += txn.amount;
+          }
+        }
+      }
+
+      final dateKey = DateTime(
+        txn.dateTime.year,
+        txn.dateTime.month,
+        txn.dateTime.day,
+      );
+      _groupedByDate.putIfAbsent(dateKey, () => []).add(txn);
+    }
+
+    _todaysSpending = todaySum;
+    _thisMonthsSpending = thisMonthSum;
+    _recomputeFiltered();
   }
 
-  /// Transactions filtered by the active date range (or all if no filter).
-  List<Transaction> get filteredTransactions {
-    if (_dateFilter == null) return _transactions;
+  void _recomputeFiltered() {
+    _filteredGroupedByDate.clear();
+    
+    if (_dateFilter == null) {
+      _filteredTransactions = List.from(_transactions);
+      _filteredGroupedByDate = Map.from(_groupedByDate);
+      return;
+    }
+
     final start = DateTime(
       _dateFilter!.start.year,
       _dateFilter!.start.month,
@@ -72,46 +109,18 @@ class TransactionProvider extends ChangeNotifier {
       _dateFilter!.end.day,
       23, 59, 59,
     );
-    return _transactions
-        .where((t) =>
-            !t.dateTime.isBefore(start) && !t.dateTime.isAfter(end))
+
+    _filteredTransactions = _transactions
+        .where((t) => !t.dateTime.isBefore(start) && !t.dateTime.isAfter(end))
         .toList();
-  }
 
-  /// Filtered transactions grouped by date (for the receipt feed).
-  Map<DateTime, List<Transaction>> get filteredGroupedByDate {
-    final grouped = <DateTime, List<Transaction>>{};
-    for (final txn in filteredTransactions) {
+    for (final txn in _filteredTransactions) {
       final dateKey = DateTime(
         txn.dateTime.year,
         txn.dateTime.month,
         txn.dateTime.day,
       );
-      grouped.putIfAbsent(dateKey, () => []).add(txn);
-    }
-    return grouped;
-  }
-
-  /// Transactions grouped by date (unfiltered — kept for backwards compat).
-  Map<DateTime, List<Transaction>> get groupedByDate {
-    final grouped = <DateTime, List<Transaction>>{};
-    for (final txn in _transactions) {
-      final dateKey = DateTime(
-        txn.dateTime.year,
-        txn.dateTime.month,
-        txn.dateTime.day,
-      );
-      grouped.putIfAbsent(dateKey, () => []).add(txn);
-    }
-    return grouped;
-  }
-
-  /// Returns a category by [id] from the in-memory list, or `null`.
-  Category? getCategoryById(String id) {
-    try {
-      return _categories.firstWhere((c) => c.id == id);
-    } catch (_) {
-      return null;
+      _filteredGroupedByDate.putIfAbsent(dateKey, () => []).add(txn);
     }
   }
 
@@ -120,12 +129,14 @@ class TransactionProvider extends ChangeNotifier {
   /// Sets the date filter and notifies listeners.
   void setDateFilter(DateTimeRange range) {
     _dateFilter = range;
+    _recomputeFiltered();
     notifyListeners();
   }
 
   /// Clears the date filter (show all).
   void clearDateFilter() {
     _dateFilter = null;
+    _recomputeFiltered();
     notifyListeners();
   }
 
@@ -140,6 +151,7 @@ class TransactionProvider extends ChangeNotifier {
     try {
       _transactions = await _transactionRepository.getAll();
       _categories = await _categoryRepository.getAll();
+      _recomputeStats();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -156,6 +168,7 @@ class TransactionProvider extends ChangeNotifier {
 
     try {
       _transactions = await _transactionRepository.getAll();
+      _recomputeStats();
     } catch (e) {
       _error = e.toString();
     } finally {
