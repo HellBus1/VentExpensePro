@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
@@ -7,6 +8,7 @@ import '../../core/utils/category_icon_mapper.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/enums.dart';
+import '../providers/currency_provider.dart';
 
 /// Quick-add bottom sheet: Category → Amount → Source → Log It ✓
 ///
@@ -46,6 +48,11 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
   String? _validationError;
 
   bool get _isEditing => widget.initialValues != null;
+
+  /// Resolves the currency symbol from the global CurrencyProvider.
+  String get _currencySymbol {
+    return context.read<CurrencyProvider>().symbol.trim();
+  }
 
   @override
   void initState() {
@@ -338,7 +345,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
       child: Row(
         children: [
           Text(
-            'Rp',
+            _currencySymbol,
             style: AppTypography.amountMedium.copyWith(
               color: AppColors.inkLight,
             ),

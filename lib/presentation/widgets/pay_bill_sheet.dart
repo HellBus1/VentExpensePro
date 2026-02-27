@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/value_objects/money.dart';
+import '../providers/currency_provider.dart';
 
 /// Bottom sheet for one-touch credit card bill settlement.
 ///
@@ -319,7 +321,7 @@ class _PayBillSheetState extends State<PayBillSheet> {
               fontSize: 24,
             ),
             decoration: InputDecoration(
-              prefixText: 'Rp ',
+              prefixText: '${context.read<CurrencyProvider>().symbol} ',
               prefixStyle: AppTypography.amountLarge.copyWith(
                 color: AppColors.inkLight,
                 fontSize: 24,
