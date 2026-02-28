@@ -1,4 +1,4 @@
-package com.example.vent_expense_pro
+package com.digiventure.ventexpensepro
 
 import io.flutter.embedding.android.FlutterActivity
 

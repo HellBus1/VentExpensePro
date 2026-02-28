@@ -1,121 +1,283 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'core/di/service_locator.dart';
+import 'core/theme/app_colors.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/app_typography.dart';
+import 'domain/entities/enums.dart';
+import 'domain/entities/transaction.dart';
+import 'domain/repositories/account_repository.dart';
+import 'domain/repositories/category_repository.dart';
+import 'domain/repositories/transaction_repository.dart';
+import 'domain/usecases/calculate_net_position.dart';
+import 'domain/usecases/manage_account.dart';
+import 'domain/usecases/manage_transaction.dart';
+import 'domain/usecases/settle_credit_bill.dart';
+import 'domain/usecases/sync_data.dart';
+import 'domain/usecases/generate_report.dart';
+import 'presentation/providers/account_provider.dart';
+import 'presentation/providers/category_provider.dart';
+import 'presentation/providers/currency_provider.dart';
+import 'presentation/providers/reports_provider.dart';
+import 'presentation/providers/sync_provider.dart';
+import 'presentation/providers/transaction_provider.dart';
+import 'presentation/screens/accounts_screen.dart';
+import 'presentation/screens/ledger_screen.dart';
+import 'presentation/screens/reports_screen.dart';
+import 'presentation/widgets/manage_categories_sheet.dart';
+import 'presentation/widgets/quick_add_transaction_sheet.dart';
+import 'presentation/widgets/sync_settings_card.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp();
+
+    // Pass all uncaught "fatal" errors from the framework to Crashlytics
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  } catch (e) {
+    debugPrint('Firebase not initialized: $e');
+  }
+
+  // Initialize dependency injection
+  await initServiceLocator();
+
+  runApp(const VentExpenseApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+/// Root application widget.
+class VentExpenseApp extends StatelessWidget {
+  const VentExpenseApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AccountProvider(
+            sl<AccountRepository>(),
+            sl<CalculateNetPosition>(),
+            sl<ManageAccount>(),
+            sl<SettleCreditBill>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TransactionProvider(
+            sl<TransactionRepository>(),
+            sl<CategoryRepository>(),
+            sl<ManageTransaction>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CategoryProvider(sl<CategoryRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CurrencyProvider()..loadCurrency(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SyncProvider(sl<SyncData>()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ReportsProvider(sl<GenerateReport>()),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'VentExpense Pro',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const HomeShell(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+/// The main shell with bottom navigation.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomeShell> createState() => _HomeShellState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomeShellState extends State<HomeShell> {
+  int _currentIndex = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+
+
+  static const _titles = ['Ledger', 'Accounts', 'Reports'];
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text(
+          _titles[_currentIndex],
+          style: AppTypography.titleLarge.copyWith(color: AppColors.inkBlue),
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.inkLight),
+            onSelected: (value) {
+              if (value == 'categories') _openCategoryManager(context);
+              if (value == 'sync') _openSyncSettings(context);
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'categories',
+                child: Row(
+                  children: [
+                    Icon(Icons.category_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Manage Categories'),
+                  ],
+                ),
+              ),
+              // TODO: Re-enable when Backup & Sync is ready
+              // const PopupMenuItem(
+              //   value: 'sync',
+              //   child: Row(
+              //     children: [
+              //       Icon(Icons.cloud_outlined, size: 20),
+              //       SizedBox(width: 8),
+              //       Text('Backup & Sync'),
+              //     ],
+              //   ),
+              // ),
+            ],
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+      body: RepaintBoundary(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: const [
+            LedgerScreen(),
+            AccountsScreen(),
+            ReportsScreen(),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Ledger',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: Icon(Icons.account_balance_wallet),
+            label: 'Accounts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            activeIcon: Icon(Icons.description),
+            label: 'Reports',
+          ),
+        ],
+      ),
+      floatingActionButton: _currentIndex == 1
+          ? null // Accounts screen manages its own FAB
+          : FloatingActionButton(
+              onPressed: () => _openQuickAdd(context),
+              tooltip: 'Log Transaction',
+              child: const Icon(Icons.add),
+            ),
+    );
+  }
+
+  void _openQuickAdd(BuildContext context) async {
+    final txnProvider = context.read<TransactionProvider>();
+    final accProvider = context.read<AccountProvider>();
+
+    // Ensure data is loaded
+    if (txnProvider.categories.isEmpty) await txnProvider.loadAll();
+    if (accProvider.accounts.isEmpty) await accProvider.loadAccounts();
+
+    if (!context.mounted) return;
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => QuickAddTransactionSheet(
+        categories: txnProvider.categories,
+        accounts: accProvider.accounts
+            .where((a) => !a.isArchived)
+            .toList(),
+      ),
+    );
+
+    if (result != null && mounted) {
+      final transaction = Transaction(
+        id: const Uuid().v4(),
+        amount: result['amount'] as int,
+        type: result['type'] as TransactionType,
+        categoryId: result['categoryId'] as String,
+        accountId: result['accountId'] as String,
+        toAccountId: result['toAccountId'] as String?,
+        note: result['note'] as String?,
+        dateTime: result['dateTime'] as DateTime,
+      );
+
+      await txnProvider.addTransaction(transaction);
+      if (mounted) await accProvider.loadAccounts();
+    }
+  }
+
+  void _openCategoryManager(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const ManageCategoriesSheet(),
+    );
+  }
+
+  void _openSyncSettings(BuildContext context) async {
+    // Load current sync status before showing
+    await context.read<SyncProvider>().loadStatus();
+
+    if (!context.mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: const SyncSettingsCard(),
       ),
     );
   }
