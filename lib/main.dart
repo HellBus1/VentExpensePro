@@ -131,6 +131,7 @@ class _HomeShellState extends State<HomeShell> {
         ),
         actions: [
           PopupMenuButton<String>(
+            key: const ValueKey('app_bar_overflow_menu'),
             icon: const Icon(Icons.more_vert, color: AppColors.inkLight),
             onSelected: (value) {
               if (value == 'categories') _openCategoryManager(context);
@@ -148,6 +149,7 @@ class _HomeShellState extends State<HomeShell> {
                 ),
               ),
               const PopupMenuItem(
+                key: ValueKey('menu_backup_sync'),
                 value: 'sync',
                 child: Row(
                   children: [

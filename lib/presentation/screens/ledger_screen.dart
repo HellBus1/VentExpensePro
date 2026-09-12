@@ -14,6 +14,7 @@ import '../widgets/quick_add_transaction_sheet.dart';
 import '../widgets/quick_stats_strip.dart';
 import '../widgets/receipt_card.dart';
 import '../widgets/receipt_date_header.dart';
+import '../widgets/sync_status_chip.dart';
 
 
 /// The main ledger screen — a continuous, receipt-style transaction feed.
@@ -64,8 +65,8 @@ class _LedgerScreenState extends State<LedgerScreen> {
               ),
 
               // — Sync Status Chip —
-              SliverToBoxAdapter(
-                child: _buildSyncChip(syncProvider),
+              const SliverToBoxAdapter(
+                child: SyncStatusChip(),
               ),
 
               // — Quick Stats Strip —
@@ -199,109 +200,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
     );
   }
 
-  // ——— Sync Status Chip ———
 
-  Widget _buildSyncChip(SyncProvider syncProvider) {
-    final status = syncProvider.status;
-
-    // Determine icon, color, and label based on sync state
-    IconData icon;
-    Color chipColor;
-    Color iconColor;
-
-    if (status.isSyncing) {
-      icon = Icons.cloud_sync_outlined;
-      chipColor = AppColors.inkBlue.withValues(alpha: 0.08);
-      iconColor = AppColors.inkBlue;
-    } else if (status.errorMessage != null) {
-      icon = Icons.cloud_off_outlined;
-      chipColor = AppColors.stampRedLight;
-      iconColor = AppColors.stampRed;
-    } else if (status.isSignedIn && status.lastBackupAt != null) {
-      icon = Icons.cloud_done_outlined;
-      chipColor = AppColors.inkGreenLight;
-      iconColor = AppColors.inkGreen;
-    } else {
-      icon = Icons.cloud_outlined;
-      chipColor = AppColors.paperElevated;
-      iconColor = AppColors.disabled;
-    }
-
-    final label = status.isSyncing
-        ? 'Syncing…'
-        : syncProvider.lastSyncedRelativeText;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: GestureDetector(
-          onTap: () {
-            if (status.isSyncing) return;
-            if (status.isSignedIn) {
-              syncProvider.backup().then((_) {
-                if (mounted && syncProvider.status.errorMessage == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Backup complete'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                } else if (mounted &&
-                    syncProvider.status.errorMessage != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(syncProvider.status.errorMessage!),
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              });
-            } else {
-              syncProvider.signIn();
-            }
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: chipColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: iconColor.withValues(alpha: 0.3),
-                width: 0.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (status.isSyncing)
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      color: iconColor,
-                    ),
-                  )
-                else
-                  Icon(icon, size: 14, color: iconColor),
-                const SizedBox(width: 5),
-                Text(
-                  label,
-                  style: AppTypography.label.copyWith(
-                    color: iconColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // ——— Filter Bar ———
 
