@@ -94,6 +94,7 @@ class SyncSettingsCard extends StatelessWidget {
                           width: 32,
                           height: 32,
                           child: CircularProgressIndicator(
+                            key: ValueKey('sync_progress_indicator'),
                             strokeWidth: 3,
                             color: AppColors.inkBlue,
                           ),
@@ -128,6 +129,7 @@ class SyncSettingsCard extends StatelessWidget {
     return SizedBox(
       height: 48,
       child: OutlinedButton.icon(
+        key: const ValueKey('sync_signin_button'),
         onPressed: () => provider.signIn(),
         icon: const Icon(Icons.login, size: 20),
         label: const Text('Sign in with Google'),
@@ -187,6 +189,7 @@ class SyncSettingsCard extends StatelessWidget {
                     ),
                   Text(
                     status.userEmail ?? '',
+                    key: const ValueKey('sync_user_email'),
                     style: AppTypography.bodySmall,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -212,6 +215,7 @@ class SyncSettingsCard extends StatelessWidget {
                 status.lastBackupAt != null
                     ? 'Last backup: ${_formatTimestamp(status.lastBackupAt!)}'
                     : 'No backups yet',
+                key: const ValueKey('sync_last_backup_text'),
                 style: AppTypography.bodySmall,
               ),
             ],
@@ -227,6 +231,7 @@ class SyncSettingsCard extends StatelessWidget {
               child: SizedBox(
                 height: 44,
                 child: FilledButton.icon(
+                  key: const ValueKey('sync_backup_button'),
                   onPressed: () => provider.backup(),
                   icon: const Icon(Icons.cloud_upload_outlined, size: 18),
                   label: const Text('Backup Now'),
@@ -250,6 +255,7 @@ class SyncSettingsCard extends StatelessWidget {
               child: SizedBox(
                 height: 44,
                 child: OutlinedButton.icon(
+                  key: const ValueKey('sync_restore_button'),
                   onPressed: () => _confirmRestore(context, provider),
                   icon: const Icon(Icons.cloud_download_outlined, size: 18),
                   label: const Text('Restore'),
@@ -273,6 +279,7 @@ class SyncSettingsCard extends StatelessWidget {
         // Sign-out
         Center(
           child: TextButton(
+            key: const ValueKey('sync_signout_button'),
             onPressed: () => provider.signOut(),
             child: Text(
               'Sign Out',

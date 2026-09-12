@@ -131,6 +131,7 @@ class _HomeShellState extends State<HomeShell> {
         ),
         actions: [
           PopupMenuButton<String>(
+            key: const ValueKey('app_bar_overflow_menu'),
             icon: const Icon(Icons.more_vert, color: AppColors.inkLight),
             onSelected: (value) {
               if (value == 'categories') _openCategoryManager(context);
@@ -147,17 +148,17 @@ class _HomeShellState extends State<HomeShell> {
                   ],
                 ),
               ),
-              // TODO: Re-enable when Backup & Sync is ready
-              // const PopupMenuItem(
-              //   value: 'sync',
-              //   child: Row(
-              //     children: [
-              //       Icon(Icons.cloud_outlined, size: 20),
-              //       SizedBox(width: 8),
-              //       Text('Backup & Sync'),
-              //     ],
-              //   ),
-              // ),
+              const PopupMenuItem(
+                key: ValueKey('menu_backup_sync'),
+                value: 'sync',
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Backup & Sync'),
+                  ],
+                ),
+              ),
             ],
           ),
         ],

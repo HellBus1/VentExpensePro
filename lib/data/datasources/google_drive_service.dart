@@ -4,6 +4,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 
+import '../../domain/entities/sync_exception.dart';
+
 /// Low-level service wrapping Google Sign-In + Google Drive API (v3).
 ///
 /// All file operations target the `appDataFolder` — a hidden,
@@ -28,7 +30,10 @@ class GoogleDriveService {
   Future<GoogleSignInAccount> signIn() async {
     final account = await _googleSignIn.signIn();
     if (account == null) {
-      throw Exception('Google Sign-In was cancelled.');
+      throw const SyncException(
+        SyncErrorType.notSignedIn,
+        'Google Sign-In was cancelled.',
+      );
     }
     return account;
   }
@@ -69,7 +74,14 @@ class GoogleDriveService {
       ..parents = ['appDataFolder']
       ..mimeType = _mimeType;
 
-    await driveApi.files.create(driveFile, uploadMedia: media);
+    try {
+      await driveApi.files.create(driveFile, uploadMedia: media);
+    } catch (e) {
+      throw SyncException(
+        SyncErrorType.backupFailed,
+        'Failed to upload backup: $e',
+      );
+    }
 
     // Clean up old backups, keep only the latest N.
     await _cleanupOldBackups(driveApi);
@@ -85,44 +97,76 @@ class GoogleDriveService {
     final latest = await _getLatestBackupFile(driveApi);
 
     if (latest == null || latest.id == null) {
-      throw Exception('No backup found on Google Drive.');
+      throw const SyncException(
+        SyncErrorType.noBackupFound,
+        'No backup found on Google Drive.',
+      );
     }
 
-    final media = await driveApi.files.get(
-      latest.id!,
-      downloadOptions: drive.DownloadOptions.fullMedia,
-    ) as drive.Media;
+    try {
+      final media = await driveApi.files.get(
+        latest.id!,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
 
-    final bytes = <int>[];
-    await for (final chunk in media.stream) {
-      bytes.addAll(chunk);
+      final bytes = <int>[];
+      await for (final chunk in media.stream) {
+        bytes.addAll(chunk);
+      }
+
+      return utf8.decode(bytes);
+    } catch (e) {
+      throw SyncException(
+        SyncErrorType.restoreFailed,
+        'Failed to download backup: $e',
+      );
     }
-
-    return utf8.decode(bytes);
   }
 
   /// Returns the `modifiedTime` of the most recent backup,
   /// or `null` if no backups exist.
   Future<DateTime?> getLatestBackupTime() async {
-    final driveApi = await _getDriveApi();
-    final latest = await _getLatestBackupFile(driveApi);
-    return latest?.modifiedTime;
+    try {
+      final driveApi = await _getDriveApi();
+      final latest = await _getLatestBackupFile(driveApi);
+      return latest?.modifiedTime;
+    } on SyncException {
+      rethrow;
+    } catch (_) {
+      // Non-critical — return null if we can't check
+      return null;
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────
 
   /// Builds an authenticated [drive.DriveApi] client.
+  ///
+  /// Throws [SyncException] with appropriate type if the user
+  /// is not signed in or the OAuth token has expired.
   Future<drive.DriveApi> _getDriveApi() async {
     var account = _googleSignIn.currentUser;
     account ??= await _googleSignIn.signInSilently();
 
     if (account == null) {
-      throw Exception('Not signed in to Google.');
+      throw const SyncException(
+        SyncErrorType.notSignedIn,
+        'Not signed in to Google.',
+      );
     }
 
-    final authHeaders = await account.authHeaders;
-    final client = _GoogleAuthClient(authHeaders);
-    return drive.DriveApi(client);
+    try {
+      final authHeaders = await account.authHeaders;
+      final client = _GoogleAuthClient(authHeaders);
+      return drive.DriveApi(client);
+    } catch (e) {
+      // Token expired or revoked — clear state and signal re-auth needed
+      await _googleSignIn.signOut();
+      throw const SyncException(
+        SyncErrorType.tokenExpired,
+        'Google session expired. Please sign in again.',
+      );
+    }
   }
 
   /// Returns the most recent backup file metadata, or `null`.

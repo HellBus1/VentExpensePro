@@ -7,12 +7,15 @@ import '../../domain/entities/enums.dart';
 import '../../domain/entities/transaction.dart';
 import '../painters/paper_background.dart';
 import '../providers/account_provider.dart';
+import '../providers/sync_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/net_position_card.dart';
 import '../widgets/quick_add_transaction_sheet.dart';
 import '../widgets/quick_stats_strip.dart';
 import '../widgets/receipt_card.dart';
 import '../widgets/receipt_date_header.dart';
+import '../widgets/sync_status_chip.dart';
+
 
 /// The main ledger screen — a continuous, receipt-style transaction feed.
 class LedgerScreen extends StatefulWidget {
@@ -32,17 +35,19 @@ class _LedgerScreenState extends State<LedgerScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final txnProv = context.read<TransactionProvider>();
       final accProv = context.read<AccountProvider>();
+      final syncProv = context.read<SyncProvider>();
       
       if (txnProv.transactions.isEmpty) txnProv.loadAll();
       if (accProv.accounts.isEmpty) accProv.loadAccounts();
+      syncProv.loadStatus();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return PaperBackground(
-      child: Consumer2<TransactionProvider, AccountProvider>(
-        builder: (context, txnProvider, accProvider, _) {
+      child: Consumer3<TransactionProvider, AccountProvider, SyncProvider>(
+        builder: (context, txnProvider, accProvider, syncProvider, _) {
           final grouped = txnProvider.filteredGroupedByDate;
           final sortedDates = grouped.keys.toList()
             ..sort((a, b) => b.compareTo(a)); // newest first
@@ -57,6 +62,11 @@ class _LedgerScreenState extends State<LedgerScreen> {
                       ? NetPositionCard(breakdown: accProvider.breakdown!)
                       : const SizedBox.shrink(),
                 ),
+              ),
+
+              // — Sync Status Chip —
+              const SliverToBoxAdapter(
+                child: SyncStatusChip(),
               ),
 
               // — Quick Stats Strip —
@@ -190,7 +200,10 @@ class _LedgerScreenState extends State<LedgerScreen> {
     );
   }
 
+
+
   // ——— Filter Bar ———
+
 
   Widget _buildFilterBar(BuildContext context, TransactionProvider provider) {
     final now = DateTime.now();
