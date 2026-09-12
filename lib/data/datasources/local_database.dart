@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// SQLite database provider — singleton access to the local ledger database.
 class LocalDatabase {
   static const String _dbName = 'vent_expense.db';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
 
   static Database? _database;
 
@@ -42,8 +42,12 @@ class LocalDatabase {
   /// ```
   static Future<void> _onUpgrade(
       Database db, int oldVersion, int newVersion) async {
-    // — Future migrations go here —
-    // if (oldVersion < 2) { ... }
+    // v1 → v2: Add billing cycle support for credit card accounts.
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE accounts ADD COLUMN statement_close_day INTEGER',
+      );
+    }
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -56,7 +60,8 @@ class LocalDatabase {
         balance INTEGER NOT NULL DEFAULT 0,
         currency TEXT NOT NULL DEFAULT 'IDR',
         is_archived INTEGER NOT NULL DEFAULT 0,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        statement_close_day INTEGER
       )
     ''');
 

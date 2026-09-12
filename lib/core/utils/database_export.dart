@@ -1,15 +1,16 @@
 import 'dart:convert';
 
 import '../../data/datasources/local_database.dart';
+import '../../domain/entities/sync_exception.dart';
 
 /// Utility for exporting / importing the entire local database
 /// as a JSON-serializable map.
 ///
-/// Backup format:
+/// Backup format (v2):
 /// ```json
 /// {
-///   "version": 1,
-///   "exportedAt": "2026-02-21T10:00:00.000",
+///   "version": 2,
+///   "exportedAt": "2026-09-12T10:00:00.000",
 ///   "accounts": [ ... ],
 ///   "transactions": [ ... ],
 ///   "categories": [ ... ]
@@ -17,7 +18,7 @@ import '../../data/datasources/local_database.dart';
 /// ```
 class DatabaseExport {
   /// The current export schema version.
-  static const int _version = 1;
+  static const int _version = 2;
 
   /// Exports all rows from accounts, transactions, and categories
   /// into a single JSON-encodable map.
@@ -45,9 +46,24 @@ class DatabaseExport {
 
   /// Replaces **all** local data with the contents of [data].
   ///
+  /// Handles both v1 and v2 backup formats:
+  /// - v1: accounts may lack `statement_close_day` — SQLite defaults to null.
+  /// - v2: all fields present.
+  ///
   /// Wraps the entire operation in a database transaction
   /// for atomicity — if anything fails, no changes are committed.
   static Future<void> importAll(Map<String, dynamic> data) async {
+    final version = data['version'] as int? ?? 1;
+
+    // Guard against future versions this app can't handle
+    if (version > _version) {
+      throw SyncException(
+        SyncErrorType.restoreFailed,
+        'Backup format v$version is not supported by this app version. '
+            'Please update the app.',
+      );
+    }
+
     final db = await LocalDatabase.database;
 
     await db.transaction((txn) async {
@@ -63,6 +79,8 @@ class DatabaseExport {
       }
 
       // 3. Re-insert accounts.
+      // v1 backups won't have statement_close_day — that's fine,
+      // SQLite will default the missing column to null.
       final accounts = data['accounts'] as List<dynamic>? ?? [];
       for (final row in accounts) {
         await txn.insert('accounts', Map<String, dynamic>.from(row as Map));
@@ -83,3 +101,4 @@ class DatabaseExport {
     await importAll(data);
   }
 }
+

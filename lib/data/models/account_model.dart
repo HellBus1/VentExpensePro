@@ -11,6 +11,7 @@ class AccountModel extends Account {
     super.currency,
     super.isArchived,
     required super.createdAt,
+    super.statementCloseDay,
   });
 
   /// Creates an [AccountModel] from a SQLite row map.
@@ -23,6 +24,7 @@ class AccountModel extends Account {
       currency: (map['currency'] as String?) ?? 'IDR',
       isArchived: (map['is_archived'] as int) == 1,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
+      statementCloseDay: map['statement_close_day'] as int?,
     );
   }
 
@@ -36,6 +38,7 @@ class AccountModel extends Account {
       currency: account.currency,
       isArchived: account.isArchived,
       createdAt: account.createdAt,
+      statementCloseDay: account.statementCloseDay,
     );
   }
 
@@ -49,6 +52,8 @@ class AccountModel extends Account {
       'currency': currency,
       'is_archived': isArchived ? 1 : 0,
       'created_at': createdAt.millisecondsSinceEpoch,
+      'statement_close_day': statementCloseDay,
     };
   }
 }
+

@@ -26,6 +26,11 @@ class Account extends Equatable {
   /// When this account was created.
   final DateTime createdAt;
 
+  /// The day of month when the credit card statement closes (1–28).
+  /// Only meaningful for [AccountType.credit].
+  /// Example: 20 means the billing cycle runs from 21st → 20th.
+  final int? statementCloseDay;
+
   const Account({
     required this.id,
     required this.name,
@@ -34,6 +39,7 @@ class Account extends Equatable {
     this.currency = 'IDR',
     this.isArchived = false,
     required this.createdAt,
+    this.statementCloseDay,
   });
 
   /// Whether this account counts as an asset (debit / cash).
@@ -51,6 +57,8 @@ class Account extends Equatable {
     String? currency,
     bool? isArchived,
     DateTime? createdAt,
+    int? statementCloseDay,
+    bool clearStatementCloseDay = false,
   }) {
     return Account(
       id: id ?? this.id,
@@ -60,6 +68,9 @@ class Account extends Equatable {
       currency: currency ?? this.currency,
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
+      statementCloseDay: clearStatementCloseDay
+          ? null
+          : (statementCloseDay ?? this.statementCloseDay),
     );
   }
 
@@ -72,5 +83,7 @@ class Account extends Equatable {
     currency,
     isArchived,
     createdAt,
+    statementCloseDay,
   ];
 }
+

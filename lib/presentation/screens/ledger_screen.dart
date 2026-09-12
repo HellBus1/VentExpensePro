@@ -7,12 +7,14 @@ import '../../domain/entities/enums.dart';
 import '../../domain/entities/transaction.dart';
 import '../painters/paper_background.dart';
 import '../providers/account_provider.dart';
+import '../providers/sync_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/net_position_card.dart';
 import '../widgets/quick_add_transaction_sheet.dart';
 import '../widgets/quick_stats_strip.dart';
 import '../widgets/receipt_card.dart';
 import '../widgets/receipt_date_header.dart';
+
 
 /// The main ledger screen — a continuous, receipt-style transaction feed.
 class LedgerScreen extends StatefulWidget {
@@ -32,17 +34,19 @@ class _LedgerScreenState extends State<LedgerScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final txnProv = context.read<TransactionProvider>();
       final accProv = context.read<AccountProvider>();
+      final syncProv = context.read<SyncProvider>();
       
       if (txnProv.transactions.isEmpty) txnProv.loadAll();
       if (accProv.accounts.isEmpty) accProv.loadAccounts();
+      syncProv.loadStatus();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return PaperBackground(
-      child: Consumer2<TransactionProvider, AccountProvider>(
-        builder: (context, txnProvider, accProvider, _) {
+      child: Consumer3<TransactionProvider, AccountProvider, SyncProvider>(
+        builder: (context, txnProvider, accProvider, syncProvider, _) {
           final grouped = txnProvider.filteredGroupedByDate;
           final sortedDates = grouped.keys.toList()
             ..sort((a, b) => b.compareTo(a)); // newest first
@@ -57,6 +61,11 @@ class _LedgerScreenState extends State<LedgerScreen> {
                       ? NetPositionCard(breakdown: accProvider.breakdown!)
                       : const SizedBox.shrink(),
                 ),
+              ),
+
+              // — Sync Status Chip —
+              SliverToBoxAdapter(
+                child: _buildSyncChip(syncProvider),
               ),
 
               // — Quick Stats Strip —
@@ -190,7 +199,112 @@ class _LedgerScreenState extends State<LedgerScreen> {
     );
   }
 
+  // ——— Sync Status Chip ———
+
+  Widget _buildSyncChip(SyncProvider syncProvider) {
+    final status = syncProvider.status;
+
+    // Determine icon, color, and label based on sync state
+    IconData icon;
+    Color chipColor;
+    Color iconColor;
+
+    if (status.isSyncing) {
+      icon = Icons.cloud_sync_outlined;
+      chipColor = AppColors.inkBlue.withValues(alpha: 0.08);
+      iconColor = AppColors.inkBlue;
+    } else if (status.errorMessage != null) {
+      icon = Icons.cloud_off_outlined;
+      chipColor = AppColors.stampRedLight;
+      iconColor = AppColors.stampRed;
+    } else if (status.isSignedIn && status.lastBackupAt != null) {
+      icon = Icons.cloud_done_outlined;
+      chipColor = AppColors.inkGreenLight;
+      iconColor = AppColors.inkGreen;
+    } else {
+      icon = Icons.cloud_outlined;
+      chipColor = AppColors.paperElevated;
+      iconColor = AppColors.disabled;
+    }
+
+    final label = status.isSyncing
+        ? 'Syncing…'
+        : syncProvider.lastSyncedRelativeText;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: GestureDetector(
+          onTap: () {
+            if (status.isSyncing) return;
+            if (status.isSignedIn) {
+              syncProvider.backup().then((_) {
+                if (mounted && syncProvider.status.errorMessage == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Backup complete'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } else if (mounted &&
+                    syncProvider.status.errorMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(syncProvider.status.errorMessage!),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              });
+            } else {
+              syncProvider.signIn();
+            }
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: chipColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: iconColor.withValues(alpha: 0.3),
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (status.isSyncing)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: iconColor,
+                    ),
+                  )
+                else
+                  Icon(icon, size: 14, color: iconColor),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: AppTypography.label.copyWith(
+                    color: iconColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ——— Filter Bar ———
+
 
   Widget _buildFilterBar(BuildContext context, TransactionProvider provider) {
     final now = DateTime.now();

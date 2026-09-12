@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/entities/sync_exception.dart';
 import '../../domain/entities/sync_status.dart';
 import '../../domain/usecases/sync_data.dart';
 
@@ -9,17 +12,52 @@ class SyncProvider extends ChangeNotifier {
 
   SyncStatus _status = SyncStatus.initial;
 
+  /// SharedPreferences key for persisting last backup timestamp.
+  static const _lastBackupKey = 'last_backup_timestamp';
+
   /// The current sync status.
   SyncStatus get status => _status;
 
   SyncProvider(this._syncData);
 
+  // ── Computed Getters ────────────────────────────────────
+
+  /// Human-readable relative time since last backup.
+  ///
+  /// Returns "Just now", "5m ago", "2h ago", "3d ago",
+  /// or a formatted date for older backups.
+  String get lastSyncedRelativeText {
+    final lastBackup = _status.lastBackupAt;
+    if (lastBackup == null) return 'Never synced';
+
+    final diff = DateTime.now().difference(lastBackup);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return DateFormat('dd MMM').format(lastBackup);
+  }
+
   // ── Initialisation ──────────────────────────────────────
 
   /// Checks whether the user is already signed in and loads
   /// the last backup timestamp. Call once on init.
+  ///
+  /// Loads the cached timestamp from SharedPreferences first
+  /// (instant, no network), then refreshes from Drive in the background.
   Future<void> loadStatus() async {
     try {
+      // 1. Load cached timestamp instantly (no network needed)
+      final prefs = await SharedPreferences.getInstance();
+      final cachedMs = prefs.getInt(_lastBackupKey);
+      if (cachedMs != null) {
+        _status = _status.copyWith(
+          lastBackupAt: DateTime.fromMillisecondsSinceEpoch(cachedMs),
+        );
+        notifyListeners(); // Show cached time immediately
+      }
+
+      // 2. Check sign-in status and refresh from Drive
       final signedIn = await _syncData.isSignedIn();
       if (signedIn) {
         final email = await _syncData.getSignedInEmail();
@@ -33,9 +71,22 @@ class SyncProvider extends ChangeNotifier {
           lastBackupAt: lastBackup,
           clearErrorMessage: true,
         );
+
+        // Cache the refreshed time
+        if (lastBackup != null) {
+          prefs.setInt(_lastBackupKey, lastBackup.millisecondsSinceEpoch);
+        }
       } else {
-        _status = SyncStatus.initial;
+        // Keep any cached lastBackupAt for display, but mark as signed out
+        _status = _status.copyWith(
+          isSignedIn: false,
+          clearUserEmail: true,
+          clearUserDisplayName: true,
+          clearErrorMessage: true,
+        );
       }
+    } on SyncException catch (e) {
+      _status = _status.copyWith(errorMessage: e.message);
     } catch (e) {
       _status = _status.copyWith(errorMessage: e.toString());
     }
@@ -60,6 +111,17 @@ class SyncProvider extends ChangeNotifier {
         userDisplayName: displayName,
         lastBackupAt: lastBackup,
         isSyncing: false,
+      );
+
+      // Cache the time
+      if (lastBackup != null) {
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setInt(_lastBackupKey, lastBackup.millisecondsSinceEpoch);
+      }
+    } on SyncException catch (e) {
+      _status = _status.copyWith(
+        isSyncing: false,
+        errorMessage: e.message,
       );
     } catch (e) {
       _status = _status.copyWith(
@@ -96,6 +158,22 @@ class SyncProvider extends ChangeNotifier {
         isSyncing: false,
         lastBackupAt: timestamp,
       );
+
+      // Persist to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setInt(_lastBackupKey, timestamp.millisecondsSinceEpoch);
+    } on SyncException catch (e) {
+      if (e.type == SyncErrorType.tokenExpired) {
+        // Token expired — attempt silent re-auth, then retry once
+        _status = _status.copyWith(isSyncing: false);
+        notifyListeners();
+        await _handleTokenExpiry();
+        return;
+      }
+      _status = _status.copyWith(
+        isSyncing: false,
+        errorMessage: e.message,
+      );
     } catch (e) {
       _status = _status.copyWith(
         isSyncing: false,
@@ -122,6 +200,22 @@ class SyncProvider extends ChangeNotifier {
         isSyncing: false,
         lastBackupAt: lastBackup,
       );
+
+      if (lastBackup != null) {
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setInt(_lastBackupKey, lastBackup.millisecondsSinceEpoch);
+      }
+    } on SyncException catch (e) {
+      if (e.type == SyncErrorType.tokenExpired) {
+        _status = _status.copyWith(isSyncing: false);
+        notifyListeners();
+        await _handleTokenExpiry();
+        return;
+      }
+      _status = _status.copyWith(
+        isSyncing: false,
+        errorMessage: e.message,
+      );
     } catch (e) {
       _status = _status.copyWith(
         isSyncing: false,
@@ -130,4 +224,19 @@ class SyncProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  // ── Private Helpers ─────────────────────────────────────
+
+  /// Handles token expiry by clearing signed-in state and
+  /// prompting re-authentication.
+  Future<void> _handleTokenExpiry() async {
+    _status = _status.copyWith(
+      isSignedIn: false,
+      clearUserEmail: true,
+      clearUserDisplayName: true,
+      errorMessage: 'Session expired. Please sign in again.',
+    );
+    notifyListeners();
+  }
 }
+
