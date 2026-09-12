@@ -245,7 +245,19 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
               onTap: () => setState(() {
                 _type = type;
                 // Clear destination on type change
-                if (type != TransactionType.transfer) _toAccountId = null;
+                if (type != TransactionType.transfer) {
+                  _toAccountId = null;
+                } else {
+                  // Credit accounts cannot transfer directly
+                  if (_accountId != null) {
+                    final currentAcc = widget.accounts
+                        .where((a) => a.id == _accountId)
+                        .firstOrNull;
+                    if (currentAcc?.type == AccountType.credit) {
+                      _accountId = null;
+                    }
+                  }
+                }
               }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -382,18 +394,28 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
     required void Function(String) onSelect,
     String? exclude,
   }) {
-    final filtered = widget.accounts
-        .where((a) => exclude == null || a.id != exclude)
-        .toList();
+    final filtered = widget.accounts.where((a) {
+      if (exclude != null && a.id == exclude) return false;
+      // In direct transfers, credit cards cannot be source or destination
+      if (_type == TransactionType.transfer && a.type == AccountType.credit) {
+        return false;
+      }
+      return true;
+    }).toList();
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: filtered.map((account) {
           final isSelected = selectedId == account.id;
-          final color = account.isLiability
-              ? AppColors.stampRed
-              : AppColors.inkGreen;
+          final Color color;
+          if (account.isDebt) {
+            color = AppColors.transferAmber;
+          } else if (account.isLiability) {
+            color = AppColors.stampRed;
+          } else {
+            color = AppColors.inkGreen;
+          }
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
@@ -515,10 +537,22 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
       setState(() => _validationError = 'Please select an account');
       return;
     }
-    if (_type == TransactionType.transfer && _toAccountId == null) {
-      setState(
-          () => _validationError = 'Please select a destination account');
-      return;
+    if (_type == TransactionType.transfer) {
+      if (_toAccountId == null) {
+        setState(
+            () => _validationError = 'Please select a destination account');
+        return;
+      }
+      final source =
+          widget.accounts.where((a) => a.id == _accountId).firstOrNull;
+      final dest =
+          widget.accounts.where((a) => a.id == _toAccountId).firstOrNull;
+      if (source?.type == AccountType.credit ||
+          dest?.type == AccountType.credit) {
+        setState(() => _validationError =
+            'Credit accounts cannot transfer money directly. Use "Pay Bill" to settle balances.');
+        return;
+      }
     }
 
     final note = _noteController.text.trim();

@@ -22,13 +22,18 @@ class ManageAccount {
     required AccountType type,
     required int balance,
     String currency = 'IDR',
+    int? statementCloseDay,
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       throw ArgumentError('Account name must not be empty');
     }
-    if (balance < 0) {
+    if (type != AccountType.debt && balance < 0) {
       throw ArgumentError('Initial balance must not be negative');
+    }
+    if (statementCloseDay != null &&
+        (statementCloseDay < 1 || statementCloseDay > 28)) {
+      throw ArgumentError('Statement close day must be between 1 and 28');
     }
 
     final account = Account(
@@ -38,6 +43,7 @@ class ManageAccount {
       balance: balance,
       currency: currency,
       createdAt: DateTime.now(),
+      statementCloseDay: type == AccountType.credit ? statementCloseDay : null,
     );
 
     return _accountRepository.insert(account);

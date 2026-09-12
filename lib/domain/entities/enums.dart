@@ -8,6 +8,11 @@ enum AccountType {
 
   /// A credit card — represents an IOU / liability.
   credit,
+
+  /// A personal debt account — one per person.
+  /// Positive balance = they owe me (receivable / piutang).
+  /// Negative balance = I owe them (payable / hutang).
+  debt,
 }
 
 /// Types of financial transactions.

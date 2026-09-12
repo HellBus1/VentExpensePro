@@ -23,7 +23,7 @@ class CalculateNetPosition {
       if (account.isAsset) {
         totalAssets += account.balance;
       } else if (account.isLiability) {
-        totalLiabilities += account.balance;
+        totalLiabilities += account.balance.abs();
       }
     }
 
@@ -41,7 +41,7 @@ class CalculateNetPosition {
       if (account.isAsset) {
         totalAssets += account.balance;
       } else if (account.isLiability) {
-        totalLiabilities += account.balance;
+        totalLiabilities += account.balance.abs();
       }
     }
 

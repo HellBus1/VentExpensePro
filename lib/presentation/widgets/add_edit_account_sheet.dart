@@ -26,6 +26,8 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _balanceController;
   late AccountType _selectedType;
+  int? _statementCloseDay;
+  bool _isIOweThem = false;
 
   bool get _isEditing => widget.existingAccount != null;
 
@@ -34,10 +36,23 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
     super.initState();
     final account = widget.existingAccount;
     _nameController = TextEditingController(text: account?.name ?? '');
-    _balanceController = TextEditingController(
-      text: account != null ? account.balance.toString() : '',
-    );
     _selectedType = account?.type ?? AccountType.debit;
+    _statementCloseDay = account?.statementCloseDay;
+
+    if (account != null) {
+      if (account.isDebt && account.balance < 0) {
+        _isIOweThem = true;
+        _balanceController = TextEditingController(
+          text: account.balance.abs().toString(),
+        );
+      } else {
+        _balanceController = TextEditingController(
+          text: account.balance.toString(),
+        );
+      }
+    } else {
+      _balanceController = TextEditingController();
+    }
   }
 
   @override
@@ -45,6 +60,32 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
     _nameController.dispose();
     _balanceController.dispose();
     super.dispose();
+  }
+
+  Color _colorForType(AccountType type) {
+    switch (type) {
+      case AccountType.debit:
+      case AccountType.cash:
+        return AppColors.inkGreen;
+      case AccountType.credit:
+        return AppColors.stampRed;
+      case AccountType.debt:
+        return AppColors.inkBlue;
+    }
+  }
+
+  String _getDaySuffix(int day) {
+    if (day >= 11 && day <= 13) return 'th';
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
   }
 
   @override
@@ -89,14 +130,20 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
             // — Name field —
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Account Name',
-                hintText: 'e.g. BCA Debit, Cash Wallet',
+              decoration: InputDecoration(
+                labelText: _selectedType == AccountType.debt
+                    ? 'Person / Contact Name'
+                    : 'Account Name',
+                hintText: _selectedType == AccountType.debt
+                    ? 'e.g. Budi, Ani'
+                    : 'e.g. BCA Debit, Cash Wallet',
               ),
               textCapitalization: TextCapitalization.words,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter an account name';
+                  return _selectedType == AccountType.debt
+                      ? 'Please enter a contact name'
+                      : 'Please enter an account name';
                 }
                 return null;
               },
@@ -112,21 +159,19 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
             Row(
               children: AccountType.values.map((type) {
                 final isSelected = _selectedType == type;
-                final color = (type == AccountType.credit)
-                    ? AppColors.stampRed
-                    : AppColors.inkGreen;
+                final color = _colorForType(type);
                 return Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(
-                      right: type != AccountType.credit ? 8 : 0,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: GestureDetector(
                       onTap: _isEditing
                           ? null
-                          : () => setState(() => _selectedType = type),
+                          : () => setState(() {
+                                _selectedType = type;
+                              }),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? color.withValues(alpha: 0.1)
@@ -141,7 +186,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                           children: [
                             Icon(
                               _iconForType(type),
-                              size: 20,
+                              size: 18,
                               color: isSelected ? color : AppColors.disabled,
                             ),
                             const SizedBox(height: 4),
@@ -149,7 +194,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                               _labelForType(type),
                               style: AppTypography.label.copyWith(
                                 color: isSelected ? color : AppColors.disabled,
-                                fontSize: 10,
+                                fontSize: 9,
                               ),
                             ),
                           ],
@@ -161,6 +206,88 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
               }).toList(),
             ),
             const SizedBox(height: 16),
+
+            // — Statement Close Day (Credit cards only) —
+            if (_selectedType == AccountType.credit) ...[
+              Text(
+                'BILLING CYCLE STATEMENT CLOSE DAY',
+                style: AppTypography.label.copyWith(letterSpacing: 1.5),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.paper,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.divider, width: 0.5),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _statementCloseDay,
+                    isExpanded: true,
+                    hint: const Text('Select statement close day (1–28)'),
+                    items: List.generate(28, (i) => i + 1).map((day) {
+                      return DropdownMenuItem<int>(
+                        value: day,
+                        child: Text('$day${_getDaySuffix(day)} of each month'),
+                      );
+                    }).toList(),
+                    onChanged: (day) =>
+                        setState(() => _statementCloseDay = day),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // — Debt Direction (Debt accounts only) —
+            if (_selectedType == AccountType.debt) ...[
+              Text(
+                'DEBT DIRECTION',
+                style: AppTypography.label.copyWith(letterSpacing: 1.5),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Text('They owe me'),
+                      selected: !_isIOweThem,
+                      selectedColor: AppColors.inkGreen.withValues(alpha: 0.15),
+                      labelStyle: AppTypography.bodySmall.copyWith(
+                        color: !_isIOweThem
+                            ? AppColors.inkGreen
+                            : AppColors.inkLight,
+                        fontWeight:
+                            !_isIOweThem ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      onSelected: (selected) {
+                        if (selected) setState(() => _isIOweThem = false);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Text('I owe them'),
+                      selected: _isIOweThem,
+                      selectedColor: AppColors.stampRed.withValues(alpha: 0.15),
+                      labelStyle: AppTypography.bodySmall.copyWith(
+                        color: _isIOweThem
+                            ? AppColors.stampRed
+                            : AppColors.inkLight,
+                        fontWeight:
+                            _isIOweThem ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      onSelected: (selected) {
+                        if (selected) setState(() => _isIOweThem = true);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // — Balance field —
             Row(
@@ -203,8 +330,8 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                       if (parsed == null) {
                         return 'Invalid number';
                       }
-                      if (!_isEditing && parsed < 0) {
-                        return 'Balance cannot be negative';
+                      if (parsed < 0) {
+                        return 'Enter a positive amount';
                       }
                       return null;
                     },
@@ -242,22 +369,34 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
-    final balance = int.parse(_balanceController.text.trim());
+    final parsed = int.parse(_balanceController.text.trim());
     final currency = context.read<CurrencyProvider>().currency;
+
+    final int finalBalance;
+    if (_selectedType == AccountType.debt && _isIOweThem && parsed > 0) {
+      finalBalance = -parsed;
+    } else {
+      finalBalance = parsed;
+    }
 
     if (_isEditing) {
       final updated = widget.existingAccount!.copyWith(
         name: name,
-        balance: balance,
+        balance: finalBalance,
+        statementCloseDay:
+            _selectedType == AccountType.credit ? _statementCloseDay : null,
+        clearStatementCloseDay:
+            _selectedType != AccountType.credit || _statementCloseDay == null,
       );
       Navigator.of(context).pop(updated);
     } else {
-      // Return a map with the create params
       Navigator.of(context).pop({
         'name': name,
         'type': _selectedType,
-        'balance': balance,
+        'balance': finalBalance,
         'currency': currency,
+        'statementCloseDay':
+            _selectedType == AccountType.credit ? _statementCloseDay : null,
       });
     }
   }
@@ -270,6 +409,8 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
         return Icons.payments_outlined;
       case AccountType.credit:
         return Icons.credit_card_outlined;
+      case AccountType.debt:
+        return Icons.handshake_outlined;
     }
   }
 
@@ -281,6 +422,8 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
         return 'CASH';
       case AccountType.credit:
         return 'CREDIT';
+      case AccountType.debt:
+        return 'DEBT';
     }
   }
 }

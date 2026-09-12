@@ -402,6 +402,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
         accountId: result['accountId'] as String,
         toAccountId: result['toAccountId'] as String?,
         note: result['note'] as String?,
+        isSettlement: txn.isSettlement,
         dateTime: result['dateTime'] as DateTime,
       );
 

@@ -7,6 +7,7 @@ import '../../domain/repositories/account_repository.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/usecases/manage_account.dart';
 import '../../domain/usecases/settle_credit_bill.dart';
+import '../../domain/usecases/settle_debt.dart';
 
 /// Manages account state and net position calculation.
 class AccountProvider extends ChangeNotifier {
@@ -14,12 +15,14 @@ class AccountProvider extends ChangeNotifier {
   final CalculateNetPosition _calculateNetPosition;
   final ManageAccount _manageAccount;
   final SettleCreditBill _settleCreditBill;
+  final SettleDebt _settleDebt;
 
   AccountProvider(
     this._accountRepository,
     this._calculateNetPosition,
     this._manageAccount,
     this._settleCreditBill,
+    this._settleDebt,
   );
 
   List<Account> _accounts = [];
@@ -33,6 +36,24 @@ class AccountProvider extends ChangeNotifier {
   List<Account> get assetAccounts => _accounts.where((a) => a.isAsset).toList();
   List<Account> get liabilityAccounts =>
       _accounts.where((a) => a.isLiability).toList();
+  List<Account> get creditAccounts =>
+      _accounts.where((a) => a.type == AccountType.credit).toList();
+  List<Account> get debtAccounts =>
+      _accounts.where((a) => a.type == AccountType.debt).toList();
+
+  /// Total amount others owe me (positive debt balances).
+  int get totalReceivable => debtAccounts
+      .where((a) => a.balance > 0)
+      .fold(0, (sum, a) => sum + a.balance);
+
+  /// Total amount I owe others (absolute value of negative debt balances).
+  int get totalPayable => debtAccounts
+      .where((a) => a.balance < 0)
+      .fold(0, (sum, a) => sum + a.balance.abs());
+
+  /// Net debt position.
+  int get netDebtPosition => totalReceivable - totalPayable;
+
   NetPositionBreakdown? get breakdown => _breakdown;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -71,6 +92,7 @@ class AccountProvider extends ChangeNotifier {
     required AccountType type,
     required int balance,
     String currency = 'IDR',
+    int? statementCloseDay,
   }) async {
     try {
       await _manageAccount.createAccount(
@@ -78,11 +100,13 @@ class AccountProvider extends ChangeNotifier {
         type: type,
         balance: balance,
         currency: currency,
+        statementCloseDay: statementCloseDay,
       );
       await loadAccounts();
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      rethrow;
     }
   }
 
@@ -94,6 +118,7 @@ class AccountProvider extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      rethrow;
     }
   }
 
@@ -134,6 +159,29 @@ class AccountProvider extends ChangeNotifier {
       final txn = await _settleCreditBill.call(
         sourceAccountId: sourceAccountId,
         creditAccountId: creditAccountId,
+        amount: amount,
+      );
+      await loadAccounts();
+      return txn;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Settles a personal debt (either receiving repayment or paying back) and refreshes accounts.
+  ///
+  /// Returns the settlement [Transaction] on success, or `null` on failure.
+  Future<Transaction?> settleDebt({
+    required String debtAccountId,
+    required String assetAccountId,
+    required int amount,
+  }) async {
+    try {
+      final txn = await _settleDebt.call(
+        debtAccountId: debtAccountId,
+        assetAccountId: assetAccountId,
         amount: amount,
       );
       await loadAccounts();

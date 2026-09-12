@@ -14,6 +14,7 @@ import '../../domain/usecases/log_transaction.dart';
 import '../../domain/usecases/manage_account.dart';
 import '../../domain/usecases/manage_transaction.dart';
 import '../../domain/usecases/settle_credit_bill.dart';
+import '../../domain/usecases/settle_debt.dart';
 import '../../domain/usecases/sync_data.dart';
 import '../../domain/usecases/generate_report.dart';
 import '../../domain/repositories/report_repository.dart';
@@ -54,6 +55,9 @@ Future<void> initServiceLocator() async {
   sl.registerFactory(
     () =>
         SettleCreditBill(sl<TransactionRepository>(), sl<AccountRepository>()),
+  );
+  sl.registerFactory(
+    () => SettleDebt(sl<TransactionRepository>(), sl<AccountRepository>()),
   );
   sl.registerFactory(() => ManageAccount(sl<AccountRepository>()));
   sl.registerFactory(

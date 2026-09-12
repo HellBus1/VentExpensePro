@@ -18,6 +18,7 @@ import 'domain/usecases/calculate_net_position.dart';
 import 'domain/usecases/manage_account.dart';
 import 'domain/usecases/manage_transaction.dart';
 import 'domain/usecases/settle_credit_bill.dart';
+import 'domain/usecases/settle_debt.dart';
 import 'domain/usecases/sync_data.dart';
 import 'domain/usecases/generate_report.dart';
 import 'presentation/providers/account_provider.dart';
@@ -74,6 +75,7 @@ class VentExpenseApp extends StatelessWidget {
             sl<CalculateNetPosition>(),
             sl<ManageAccount>(),
             sl<SettleCreditBill>(),
+            sl<SettleDebt>(),
           ),
         ),
         ChangeNotifierProvider(
