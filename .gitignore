@@ -31,6 +31,10 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+build/
+**/build/
+.gradle/
+**/reports/
 
 # Symbolication related
 app.*.symbols
@@ -43,11 +47,25 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Environment and code-gen
 *.env
 *.freezed.dart
 
+# Google Services & Firebase
 google-services.json
 GoogleService-Info.plist
 firebase_options.dart
 **/firebase_app_id_file.json
+
+# Android Signing and Keystore credentials (CRITICAL for public repo)
+*.keystore
+*.jks
+key.properties
+android/key.properties
+
+# Local SQLite databases (protects personal user data)
+*.sqlite
+*.sqlite3
+
+# Agent workspace customizations
 /.agents
