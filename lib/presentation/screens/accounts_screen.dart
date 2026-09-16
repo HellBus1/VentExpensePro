@@ -74,6 +74,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             right: 16,
             bottom: 16,
             child: FloatingActionButton(
+              key: const ValueKey('accounts_fab'),
               heroTag: 'accounts_fab',
               onPressed: () => _showAddSheet(context),
               tooltip: 'Add Account',
@@ -127,11 +128,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   Widget _buildAccountsList(AccountProvider provider) {
-    final assets = provider.assetAccounts;
-    final liabilities = provider.liabilityAccounts;
+    final assets = provider.accounts
+        .where((a) => a.type == AccountType.debit || a.type == AccountType.cash)
+        .toList();
+    final liabilities = provider.creditAccounts;
     final debts = provider.debtAccounts;
 
     return ListView(
+      key: const PageStorageKey('accounts_list_view'),
       padding: const EdgeInsets.only(bottom: 80),
       children: [
         // — Net Position Card —
@@ -533,8 +537,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final accProvider = context.read<AccountProvider>();
     final txnProvider = context.read<TransactionProvider>();
 
-    final assetAccounts = accProvider.assetAccounts
-        .where((a) => !a.isArchived && a.balance > 0)
+    final assetAccounts = accProvider.accounts
+        .where((a) =>
+            !a.isArchived &&
+            (a.type == AccountType.debit || a.type == AccountType.cash) &&
+            a.balance > 0)
         .toList();
 
     final messenger = ScaffoldMessenger.of(context);
@@ -603,10 +610,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final accProvider = context.read<AccountProvider>();
     final txnProvider = context.read<TransactionProvider>();
 
-    // If debtAccount.balance > 0 (they owe us, receiving cash): any asset account
-    // If debtAccount.balance < 0 (we owe them, paying cash): asset account must have balance > 0
-    final assetAccounts = accProvider.assetAccounts
-        .where((a) => !a.isArchived && (debtAccount.balance > 0 || a.balance > 0))
+    // If debtAccount.balance > 0 (they owe us, receiving cash): any debit or cash account
+    // If debtAccount.balance < 0 (we owe them, paying cash): debit or cash account must have balance > 0
+    final assetAccounts = accProvider.accounts
+        .where((a) =>
+            !a.isArchived &&
+            (a.type == AccountType.debit || a.type == AccountType.cash) &&
+            (debtAccount.balance > 0 || a.balance > 0))
         .toList();
 
     final messenger = ScaffoldMessenger.of(context);

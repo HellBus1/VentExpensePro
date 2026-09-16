@@ -317,6 +317,7 @@ class _SettleDebtSheetState extends State<SettleDebtSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
+                    key: const ValueKey('settle_debt_amount_input'),
                     controller: _amountController,
                     decoration: const InputDecoration(hintText: '0'),
                     keyboardType: TextInputType.number,
@@ -347,6 +348,7 @@ class _SettleDebtSheetState extends State<SettleDebtSheet> {
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
+                key: const ValueKey('settle_debt_button'),
                 onPressed: widget.assetAccounts.isNotEmpty ? _onSettle : null,
                 icon: const Icon(Icons.check_circle_outline, size: 20),
                 label: Text(_isReceiving ? 'Confirm Repayment' : 'Confirm Payment'),

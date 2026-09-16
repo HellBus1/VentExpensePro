@@ -141,6 +141,7 @@ class _HomeShellState extends State<HomeShell> {
             },
             itemBuilder: (_) => [
               const PopupMenuItem(
+                key: ValueKey('menu_categories'),
                 value: 'categories',
                 child: Row(
                   children: [
@@ -199,6 +200,7 @@ class _HomeShellState extends State<HomeShell> {
       floatingActionButton: _currentIndex == 1
           ? null // Accounts screen manages its own FAB
           : FloatingActionButton(
+              key: const ValueKey('main_fab_add_transaction'),
               onPressed: () => _openQuickAdd(context),
               tooltip: 'Log Transaction',
               child: const Icon(Icons.add),

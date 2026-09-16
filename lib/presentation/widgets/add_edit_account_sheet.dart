@@ -129,6 +129,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
 
             // — Name field —
             TextFormField(
+              key: const ValueKey('account_name_input'),
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: _selectedType == AccountType.debt
@@ -164,6 +165,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: GestureDetector(
+                      key: ValueKey('account_type_${type.name}'),
                       onTap: _isEditing
                           ? null
                           : () => setState(() {
@@ -251,6 +253,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                 children: [
                   Expanded(
                     child: ChoiceChip(
+                      key: const ValueKey('debt_direction_they_owe_me'),
                       label: const Text('They owe me'),
                       selected: !_isIOweThem,
                       selectedColor: AppColors.inkGreen.withValues(alpha: 0.15),
@@ -269,6 +272,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ChoiceChip(
+                      key: const ValueKey('debt_direction_i_owe_them'),
                       label: const Text('I owe them'),
                       selected: _isIOweThem,
                       selectedColor: AppColors.stampRed.withValues(alpha: 0.15),
@@ -314,6 +318,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                 // Amount
                 Expanded(
                   child: TextFormField(
+                    key: const ValueKey('account_balance_input'),
                     controller: _balanceController,
                     decoration: InputDecoration(
                       labelText: _isEditing ? 'Balance' : 'Initial Balance',
@@ -345,6 +350,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
             SizedBox(
               height: 48,
               child: ElevatedButton(
+                key: const ValueKey('account_submit_button'),
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.inkBlue,

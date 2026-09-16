@@ -53,6 +53,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
             ..sort((a, b) => b.compareTo(a)); // newest first
 
           return CustomScrollView(
+            key: const ValueKey('ledger_scroll_view'),
             slivers: [
               // — Net Position Card —
               SliverToBoxAdapter(

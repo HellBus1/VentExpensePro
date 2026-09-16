@@ -160,6 +160,7 @@ class AccountCard extends StatelessWidget {
                       color: AppColors.transferAmber.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       child: InkWell(
+                        key: ValueKey('account_pay_bill_btn_${account.name}'),
                         onTap: onPayBill,
                         borderRadius: BorderRadius.circular(8),
                         child: const Icon(
@@ -182,6 +183,7 @@ class AccountCard extends StatelessWidget {
                       color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       child: InkWell(
+                        key: ValueKey('account_settle_debt_btn_${account.name}'),
                         onTap: onSettleDebt,
                         borderRadius: BorderRadius.circular(8),
                         child: Icon(

@@ -313,6 +313,7 @@ class _PayBillSheetState extends State<PayBillSheet> {
 
           // — Amount Input —
           TextField(
+            key: const ValueKey('pay_bill_amount_input'),
             controller: _amountController,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -360,6 +361,7 @@ class _PayBillSheetState extends State<PayBillSheet> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
+              key: const ValueKey('pay_bill_settle_button'),
               onPressed: widget.assetAccounts.isEmpty ? null : _onSettle,
               icon: const Icon(Icons.check_circle_outline, size: 20),
               label: Text(

@@ -177,6 +177,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
 
             // — Note Field —
             TextFormField(
+              key: const ValueKey('quick_add_note_input'),
               controller: _noteController,
               decoration: const InputDecoration(
                 labelText: 'Note (optional)',
@@ -209,6 +210,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
             SizedBox(
               height: 48,
               child: ElevatedButton(
+                key: const ValueKey('quick_add_submit_button'),
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.inkBlue,
@@ -242,6 +244,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
               right: type != TransactionType.transfer ? 8 : 0,
             ),
             child: GestureDetector(
+              key: ValueKey('txn_type_${type.name}'),
               onTap: () => setState(() {
                 _type = type;
                 // Clear destination on type change
@@ -306,6 +309,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
         final isSelected = _categoryId == cat.id;
         final color = CategoryIconMapper.colorForType(_type);
         return GestureDetector(
+          key: ValueKey('category_item_${cat.id}'),
           onTap: () => setState(() => _categoryId = cat.id),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -365,6 +369,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
+              key: const ValueKey('quick_add_amount_input'),
               controller: _amountController,
               style: AppTypography.amountLarge.copyWith(
                 color: AppColors.inkDark,
@@ -419,6 +424,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
+              key: ValueKey('account_chip_${account.id}'),
               onTap: () => onSelect(account.id),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
