@@ -14,6 +14,7 @@ import '../widgets/account_card.dart';
 import '../widgets/add_edit_account_sheet.dart';
 import '../widgets/net_position_card.dart';
 import '../widgets/pay_bill_sheet.dart';
+import '../widgets/settle_debt_sheet.dart';
 
 /// The accounts overview screen — lists asset and liability accounts.
 class AccountsScreen extends StatefulWidget {
@@ -73,6 +74,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             right: 16,
             bottom: 16,
             child: FloatingActionButton(
+              key: const ValueKey('accounts_fab'),
               heroTag: 'accounts_fab',
               onPressed: () => _showAddSheet(context),
               tooltip: 'Add Account',
@@ -126,10 +128,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   Widget _buildAccountsList(AccountProvider provider) {
-    final assets = provider.assetAccounts;
-    final liabilities = provider.liabilityAccounts;
+    final assets = provider.accounts
+        .where((a) => a.type == AccountType.debit || a.type == AccountType.cash)
+        .toList();
+    final liabilities = provider.creditAccounts;
+    final debts = provider.debtAccounts;
 
     return ListView(
+      key: const PageStorageKey('accounts_list_view'),
       padding: const EdgeInsets.only(bottom: 80),
       children: [
         // — Net Position Card —
@@ -177,7 +183,106 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   : null,
             ),
           ),
+
+        const SizedBox(height: 16),
+
+        // — Personal Debts Section —
+        _buildSectionHeader(
+          title: 'PERSONAL DEBTS',
+          count: debts.length,
+          color: AppColors.transferAmber,
+        ),
+
+        if (debts.isEmpty)
+          _buildSectionEmpty('No personal debts or receivables')
+        else ...[
+          _buildDebtSummaryStrip(provider),
+          ...debts.map(
+            (account) => AccountCard(
+              account: account,
+              onTap: () => _showEditSheet(context, account),
+              onLongPress: () => _showArchiveDialog(context, account),
+              onSettleDebt: account.balance != 0
+                  ? () => _showSettleDebtSheet(context, account)
+                  : null,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildDebtSummaryStrip(AccountProvider provider) {
+    final currency = provider.accounts.isNotEmpty
+        ? provider.accounts.first.currency
+        : 'USD';
+    final recFormatted =
+        Money(cents: provider.totalReceivable, currency: currency).formatted;
+    final payFormatted =
+        Money(cents: provider.totalPayable, currency: currency).formatted;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.paperElevated,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.divider, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'THEY OWE YOU',
+                    style: AppTypography.label.copyWith(
+                      color: AppColors.inkGreen,
+                      fontSize: 10,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    recFormatted,
+                    style: AppTypography.amountSmall.copyWith(
+                      color: AppColors.inkGreen,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(width: 0.5, height: 28, color: AppColors.divider),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'YOU OWE',
+                    style: AppTypography.label.copyWith(
+                      color: AppColors.stampRed,
+                      fontSize: 10,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    payFormatted,
+                    style: AppTypography.amountSmall.copyWith(
+                      color: AppColors.stampRed,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -358,6 +463,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         type: result['type'] as AccountType,
         balance: result['balance'] as int,
         currency: result['currency'] as String,
+        statementCloseDay: result['statementCloseDay'] as int?,
       );
     }
   }
@@ -431,8 +537,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final accProvider = context.read<AccountProvider>();
     final txnProvider = context.read<TransactionProvider>();
 
-    final assetAccounts = accProvider.assetAccounts
-        .where((a) => !a.isArchived && a.balance > 0)
+    final assetAccounts = accProvider.accounts
+        .where((a) =>
+            !a.isArchived &&
+            (a.type == AccountType.debit || a.type == AccountType.cash) &&
+            a.balance > 0)
         .toList();
 
     final messenger = ScaffoldMessenger.of(context);
@@ -469,6 +578,80 @@ class _AccountsScreenState extends State<AccountsScreen> {
           messenger.showSnackBar(
             SnackBar(
               content: Text('Settled $formatted ✓'),
+              backgroundColor: AppColors.inkGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } else if (accProvider.error != null && mounted) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(accProvider.error!),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showSettleDebtSheet(
+    BuildContext context,
+    Account debtAccount,
+  ) async {
+    final accProvider = context.read<AccountProvider>();
+    final txnProvider = context.read<TransactionProvider>();
+
+    // If debtAccount.balance > 0 (they owe us, receiving cash): any debit or cash account
+    // If debtAccount.balance < 0 (we owe them, paying cash): debit or cash account must have balance > 0
+    final assetAccounts = accProvider.accounts
+        .where((a) =>
+            !a.isArchived &&
+            (a.type == AccountType.debit || a.type == AccountType.cash) &&
+            (debtAccount.balance > 0 || a.balance > 0))
+        .toList();
+
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SettleDebtSheet(
+        debtAccount: debtAccount,
+        assetAccounts: assetAccounts,
+      ),
+    );
+
+    if (result != null && mounted) {
+      final txn = await accProvider.settleDebt(
+        debtAccountId: debtAccount.id,
+        assetAccountId: result['assetAccountId'] as String,
+        amount: result['amount'] as int,
+      );
+
+      if (txn != null && mounted) {
+        await txnProvider.loadTransactions();
+
+        final formatted = Money(
+          cents: txn.amount,
+          currency: debtAccount.currency,
+        ).formatted;
+
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Debt settled: $formatted ✓'),
               backgroundColor: AppColors.inkGreen,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(

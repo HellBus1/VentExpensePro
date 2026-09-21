@@ -151,4 +151,13 @@ class LocalDatabase {
       _database = null;
     }
   }
+
+  /// Clears user accounts and transactions, and resets seeded categories.
+  static Future<void> resetForTesting() async {
+    final db = await database;
+    await db.delete('transactions');
+    await db.delete('accounts');
+    await db.delete('categories');
+    await _seedCategories(db);
+  }
 }

@@ -177,6 +177,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
 
             // — Note Field —
             TextFormField(
+              key: const ValueKey('quick_add_note_input'),
               controller: _noteController,
               decoration: const InputDecoration(
                 labelText: 'Note (optional)',
@@ -209,6 +210,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
             SizedBox(
               height: 48,
               child: ElevatedButton(
+                key: const ValueKey('quick_add_submit_button'),
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.inkBlue,
@@ -242,10 +244,23 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
               right: type != TransactionType.transfer ? 8 : 0,
             ),
             child: GestureDetector(
+              key: ValueKey('txn_type_${type.name}'),
               onTap: () => setState(() {
                 _type = type;
                 // Clear destination on type change
-                if (type != TransactionType.transfer) _toAccountId = null;
+                if (type != TransactionType.transfer) {
+                  _toAccountId = null;
+                } else {
+                  // Credit accounts cannot transfer directly
+                  if (_accountId != null) {
+                    final currentAcc = widget.accounts
+                        .where((a) => a.id == _accountId)
+                        .firstOrNull;
+                    if (currentAcc?.type == AccountType.credit) {
+                      _accountId = null;
+                    }
+                  }
+                }
               }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -294,6 +309,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
         final isSelected = _categoryId == cat.id;
         final color = CategoryIconMapper.colorForType(_type);
         return GestureDetector(
+          key: ValueKey('category_item_${cat.id}'),
           onTap: () => setState(() => _categoryId = cat.id),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -353,6 +369,7 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
+              key: const ValueKey('quick_add_amount_input'),
               controller: _amountController,
               style: AppTypography.amountLarge.copyWith(
                 color: AppColors.inkDark,
@@ -382,21 +399,32 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
     required void Function(String) onSelect,
     String? exclude,
   }) {
-    final filtered = widget.accounts
-        .where((a) => exclude == null || a.id != exclude)
-        .toList();
+    final filtered = widget.accounts.where((a) {
+      if (exclude != null && a.id == exclude) return false;
+      // In direct transfers, credit cards cannot be source or destination
+      if (_type == TransactionType.transfer && a.type == AccountType.credit) {
+        return false;
+      }
+      return true;
+    }).toList();
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: filtered.map((account) {
           final isSelected = selectedId == account.id;
-          final color = account.isLiability
-              ? AppColors.stampRed
-              : AppColors.inkGreen;
+          final Color color;
+          if (account.isDebt) {
+            color = AppColors.transferAmber;
+          } else if (account.isLiability) {
+            color = AppColors.stampRed;
+          } else {
+            color = AppColors.inkGreen;
+          }
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
+              key: ValueKey('account_chip_${account.id}'),
               onTap: () => onSelect(account.id),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -515,10 +543,22 @@ class _QuickAddTransactionSheetState extends State<QuickAddTransactionSheet> {
       setState(() => _validationError = 'Please select an account');
       return;
     }
-    if (_type == TransactionType.transfer && _toAccountId == null) {
-      setState(
-          () => _validationError = 'Please select a destination account');
-      return;
+    if (_type == TransactionType.transfer) {
+      if (_toAccountId == null) {
+        setState(
+            () => _validationError = 'Please select a destination account');
+        return;
+      }
+      final source =
+          widget.accounts.where((a) => a.id == _accountId).firstOrNull;
+      final dest =
+          widget.accounts.where((a) => a.id == _toAccountId).firstOrNull;
+      if (source?.type == AccountType.credit ||
+          dest?.type == AccountType.credit) {
+        setState(() => _validationError =
+            'Credit accounts cannot transfer money directly. Use "Pay Bill" to settle balances.');
+        return;
+      }
     }
 
     final note = _noteController.text.trim();

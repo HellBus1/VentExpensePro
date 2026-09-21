@@ -31,6 +31,7 @@ class ReportsScreen extends StatelessWidget {
               : 'All Time';
 
           return SingleChildScrollView(
+            key: const ValueKey('reports_scroll_view'),
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

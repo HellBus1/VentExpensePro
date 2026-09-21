@@ -53,7 +53,7 @@ class ManageTransaction {
 
     switch (txn.type) {
       case TransactionType.expense:
-        if (source.isLiability) {
+        if (source.type == AccountType.credit) {
           // Was increased → decrease it back
           await _accountRepository.updateBalance(
             source.id,
@@ -68,11 +68,19 @@ class ManageTransaction {
         }
 
       case TransactionType.income:
-        // Was increased → decrease it back
-        await _accountRepository.updateBalance(
-          source.id,
-          source.balance - txn.amount,
-        );
+        if (source.type == AccountType.credit) {
+          // Was decreased (refund reduced liability) → increase it back
+          await _accountRepository.updateBalance(
+            source.id,
+            source.balance + txn.amount,
+          );
+        } else {
+          // Was increased → decrease it back
+          await _accountRepository.updateBalance(
+            source.id,
+            source.balance - txn.amount,
+          );
+        }
 
       case TransactionType.transfer:
         // Reverse source (was decreased → increase)
@@ -80,13 +88,17 @@ class ManageTransaction {
           source.id,
           source.balance + txn.amount,
         );
-        // Reverse destination (was increased → decrease)
+        // Reverse destination
         if (txn.toAccountId != null) {
           final dest = await _accountRepository.getById(txn.toAccountId!);
           if (dest != null) {
+            final reversedDestBalance =
+                dest.type == AccountType.credit && txn.isSettlement
+                    ? dest.balance + txn.amount
+                    : dest.balance - txn.amount;
             await _accountRepository.updateBalance(
               dest.id,
-              dest.balance - txn.amount,
+              reversedDestBalance,
             );
           }
         }
@@ -100,9 +112,29 @@ class ManageTransaction {
       throw ArgumentError('Source account not found: ${txn.accountId}');
     }
 
+    // ── Credit account restrictions ──
+    if (txn.type == TransactionType.transfer && !txn.isSettlement) {
+      if (source.type == AccountType.credit) {
+        throw ArgumentError(
+          'Credit accounts cannot participate in transfers. '
+          'Use the settlement flow to pay credit card bills.',
+        );
+      }
+
+      if (txn.toAccountId != null) {
+        final dest = await _accountRepository.getById(txn.toAccountId!);
+        if (dest != null && dest.type == AccountType.credit) {
+          throw ArgumentError(
+            'Cannot transfer to a credit account. '
+            'Use the settlement flow to pay credit card bills.',
+          );
+        }
+      }
+    }
+
     switch (txn.type) {
       case TransactionType.expense:
-        if (source.isLiability) {
+        if (source.type == AccountType.credit) {
           await _accountRepository.updateBalance(
             source.id,
             source.balance + txn.amount,
@@ -115,10 +147,17 @@ class ManageTransaction {
         }
 
       case TransactionType.income:
-        await _accountRepository.updateBalance(
-          source.id,
-          source.balance + txn.amount,
-        );
+        if (source.type == AccountType.credit) {
+          await _accountRepository.updateBalance(
+            source.id,
+            source.balance - txn.amount,
+          );
+        } else {
+          await _accountRepository.updateBalance(
+            source.id,
+            source.balance + txn.amount,
+          );
+        }
 
       case TransactionType.transfer:
         if (txn.toAccountId == null) {
@@ -134,9 +173,13 @@ class ManageTransaction {
           source.id,
           source.balance - txn.amount,
         );
+        final newDestBalance =
+            dest.type == AccountType.credit && txn.isSettlement
+                ? dest.balance - txn.amount
+                : dest.balance + txn.amount;
         await _accountRepository.updateBalance(
           dest.id,
-          dest.balance + txn.amount,
+          newDestBalance,
         );
     }
   }

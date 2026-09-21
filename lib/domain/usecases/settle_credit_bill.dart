@@ -40,7 +40,7 @@ class SettleCreditBill {
     if (source == null) {
       throw ArgumentError('Source account not found: $sourceAccountId');
     }
-    if (!source.isAsset) {
+    if (source.type != AccountType.debit && source.type != AccountType.cash) {
       throw ArgumentError('Source must be a debit or cash account');
     }
 
@@ -48,7 +48,7 @@ class SettleCreditBill {
     if (credit == null) {
       throw ArgumentError('Credit account not found: $creditAccountId');
     }
-    if (!credit.isLiability) {
+    if (credit.type != AccountType.credit) {
       throw ArgumentError('Target must be a credit account');
     }
 

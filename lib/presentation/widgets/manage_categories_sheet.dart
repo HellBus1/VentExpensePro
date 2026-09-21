@@ -80,6 +80,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
                         ),
                       ),
                       IconButton(
+                        key: const ValueKey('add_category_button'),
                         onPressed: () => _showAddEditDialog(context),
                         icon: const Icon(Icons.add_circle_outline),
                         color: AppColors.inkBlue,
@@ -96,6 +97,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
                   child: provider.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : ListView.separated(
+                          key: const ValueKey('categories_list_view'),
                           controller: scrollController,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -145,6 +147,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
+            key: ValueKey('category_edit_btn_${cat.name}'),
             onPressed: () => _showAddEditDialog(context, category: cat),
             icon: const Icon(Icons.edit_outlined, size: 20),
             color: AppColors.inkLight,
@@ -152,6 +155,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
           ),
           if (cat.isCustom)
             IconButton(
+              key: ValueKey('category_delete_btn_${cat.name}'),
               onPressed: () => _confirmDelete(context, cat),
               icon: const Icon(Icons.delete_outline, size: 20),
               color: AppColors.stampRed,
@@ -191,6 +195,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
                 children: [
                   // — Name field —
                   TextField(
+                    key: const ValueKey('category_name_input'),
                     controller: nameController,
                     decoration: const InputDecoration(
                       labelText: 'Category Name',
@@ -252,6 +257,7 @@ class _ManageCategoriesSheetState extends State<ManageCategoriesSheet> {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
+                  key: const ValueKey('category_save_button'),
                   onPressed: () {
                     final name = nameController.text.trim();
                     if (name.isEmpty) return;

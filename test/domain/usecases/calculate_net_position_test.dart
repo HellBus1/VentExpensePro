@@ -236,5 +236,40 @@ void main() {
       expect(breakdown.totalLiabilities.cents, 300000);
       expect(breakdown.netPosition.cents, -300000);
     });
+
+    test('should properly categorize debt accounts: positive as assets, negative as liabilities', () async {
+      fakeRepo.seed([
+        Account(
+          id: '1',
+          name: 'Cash',
+          type: AccountType.cash,
+          balance: 100000,
+          createdAt: now,
+        ),
+        Account(
+          id: '2',
+          name: 'Budi (Receivable)',
+          type: AccountType.debt,
+          balance: 200000, // They owe us 200k -> Asset
+          createdAt: now,
+        ),
+        Account(
+          id: '3',
+          name: 'Ani (Payable)',
+          type: AccountType.debt,
+          balance: -50000, // We owe them 50k -> Liability
+          createdAt: now,
+        ),
+      ]);
+
+      final breakdown = await calculateNetPosition.breakdown();
+
+      // Assets: Cash (100k) + Budi (200k) = 300k
+      expect(breakdown.totalAssets.cents, 300000);
+      // Liabilities: Ani (50k)
+      expect(breakdown.totalLiabilities.cents, 50000);
+      // Net Position: 300k - 50k = 250k
+      expect(breakdown.netPosition.cents, 250000);
+    });
   });
 }
