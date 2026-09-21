@@ -1,11 +1,23 @@
 {
   "version": 1,
   "skills": {
+    "antislop-layoutmobile": {
+      "source": "miqdadbadjuber/anti-slop",
+      "sourceType": "github",
+      "skillPath": "skills/antislop-layoutmobile/SKILL.md",
+      "computedHash": "26e4ab8ebf33e7c3098aa08a327d0f0f4cd4d88ad238a768cd5735d7e0979704"
+    },
     "design-mobile-apps": {
       "source": "designed-by-ai/skills",
       "sourceType": "github",
       "skillPath": "skills/design-mobile-apps/SKILL.md",
       "computedHash": "52c6844cc9284ea07aa0346adc67c64756475e2e29f1233d3a0dc66dba45bdcc"
+    },
+    "firebase-security-rules-auditor": {
+      "source": "firebase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/firebase-security-rules-auditor/SKILL.md",
+      "computedHash": "f7c7565c93d0faf7c1d8e692a805d06c2794f39a0d9945634f3cd46860593517"
     },
     "flutter-add-integration-test": {
       "source": "flutter/agent-plugins",

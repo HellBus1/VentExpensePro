@@ -9,6 +9,7 @@ import '../../domain/repositories/account_repository.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/sync_repository.dart';
 import '../../domain/repositories/transaction_repository.dart';
+import '../../domain/usecases/calculate_billing_breakdown.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/usecases/log_transaction.dart';
 import '../../domain/usecases/manage_account.dart';
@@ -48,6 +49,7 @@ Future<void> initServiceLocator() async {
   );
 
   // — Use Cases —
+  sl.registerFactory(() => const CalculateBillingBreakdown());
   sl.registerFactory(() => CalculateNetPosition(sl<AccountRepository>()));
   sl.registerFactory(
     () => LogTransaction(sl<TransactionRepository>(), sl<AccountRepository>()),

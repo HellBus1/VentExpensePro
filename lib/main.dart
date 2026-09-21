@@ -83,6 +83,7 @@ class VentExpenseApp extends StatelessWidget {
             sl<TransactionRepository>(),
             sl<CategoryRepository>(),
             sl<ManageTransaction>(),
+            sl<AccountRepository>(),
           ),
         ),
         ChangeNotifierProvider(
