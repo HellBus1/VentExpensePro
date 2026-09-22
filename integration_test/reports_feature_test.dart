@@ -13,20 +13,53 @@ void main() {
   });
 
   group('Reports Feature Integration Tests', () {
-    testWidgets('Generate professional PDF report: filter by account, generate PDF statement, verify ready to save', (tester) async {
+    testWidgets('Generate professional PDF report: verify Debt Summary, Credit Card Billing, and PDF export', (tester) async {
       // 1. Launch application
       await tester.pumpWidget(const VentExpenseApp());
       await tester.pumpAndSettle();
 
-      // 2. Setup initial account & transaction
+      // 2. Setup Debt Account & Credit Card in Accounts
       await tester.tap(find.text('Accounts'));
       await tester.pumpAndSettle();
 
+      // Create Checking Account
       await tester.tap(find.byKey(const ValueKey('accounts_fab')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const ValueKey('account_name_input')), 'Checking Account');
-      await tester.enterText(find.byKey(const ValueKey('account_balance_input')), '1500000');
+      await tester.enterText(find.byKey(const ValueKey('account_balance_input')), '2500000');
       await tester.tap(find.byKey(const ValueKey('account_submit_button')));
+      await tester.pumpAndSettle();
+
+      // Create Debt Account
+      await tester.tap(find.byKey(const ValueKey('accounts_fab')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('account_name_input')), 'Alex Pratama');
+      await tester.tap(find.byKey(const ValueKey('account_type_debt')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('account_balance_input')), '500000');
+      await tester.tap(find.byKey(const ValueKey('account_submit_button')));
+      await tester.pumpAndSettle();
+
+      // Create Credit Card with statement close day
+      await tester.tap(find.byKey(const ValueKey('accounts_fab')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('account_name_input')), 'BCA Credit Card');
+      await tester.tap(find.byKey(const ValueKey('account_type_credit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('account_balance_input')), '450000');
+      
+      final closeDayDropdown = find.byKey(const ValueKey('statement_close_day_dropdown'));
+      await tester.ensureVisible(closeDayDropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(closeDayDropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1st of each month').last);
+      await tester.pumpAndSettle();
+
+      final submitBtn = find.byKey(const ValueKey('account_submit_button'));
+      await tester.ensureVisible(submitBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(submitBtn);
       await tester.pumpAndSettle();
 
       // Log a transaction in Ledger
@@ -48,30 +81,29 @@ void main() {
       await tester.tap(find.text('Reports'));
       await tester.pumpAndSettle();
 
-      // 4. Verify Reports components
+      // 4. Verify Reports headers & filters
       expect(find.text('Professional Reports'), findsOneWidget);
       expect(find.text('REPORT FILTERS'), findsOneWidget);
       expect(find.text('All Time'), findsOneWidget);
       expect(find.text('All Accounts'), findsOneWidget);
-      expect(find.text('Generate PDF Statement'), findsOneWidget);
 
-      // 5. Test Account filter selection
-      await tester.tap(find.text('All Accounts'));
-      await tester.pumpAndSettle();
+      // 5. Verify Enhanced Sections
+      expect(find.byKey(const ValueKey('reports_debt_summary_section')), findsOneWidget);
+      expect(find.text('DEBT & LENDING SUMMARY'), findsOneWidget);
+      expect(find.text('RECEIVABLE'), findsOneWidget);
+      expect(find.text('Alex Pratama'), findsOneWidget);
 
-      // Select 'Checking Account'
-      expect(find.text('Checking Account'), findsOneWidget);
-      await tester.tap(find.text('Checking Account'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Checking Account'), findsOneWidget);
+      expect(find.byKey(const ValueKey('reports_credit_billing_section')), findsOneWidget);
+      expect(find.text('CREDIT CARD BILLING BREAKDOWN'), findsOneWidget);
+      expect(find.text('BCA Credit Card'), findsOneWidget);
+      expect(find.text('Closes 1st'), findsOneWidget);
+      expect(find.text('TOTAL ALL CREDIT CARDS'), findsOneWidget);
 
       // 6. Generate PDF Statement
-      final reportsScrollView = find.byKey(const ValueKey('reports_scroll_view'));
-      await tester.drag(reportsScrollView, const Offset(0, -300));
+      final generateBtn = find.text('Generate PDF Statement');
+      await tester.ensureVisible(generateBtn);
       await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Generate PDF Statement'));
+      await tester.tap(generateBtn);
       await tester.pumpAndSettle();
 
       // 7. Verify generated PDF status
