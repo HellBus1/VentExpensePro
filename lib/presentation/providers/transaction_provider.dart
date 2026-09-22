@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/entities/account.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/enums.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/repositories/account_repository.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../../domain/usecases/manage_transaction.dart';
+import '../../domain/value_objects/transaction_filter.dart';
 
 /// Manages transaction and category state for the receipt feed.
 class TransactionProvider extends ChangeNotifier {
   final TransactionRepository _transactionRepository;
   final CategoryRepository _categoryRepository;
   final ManageTransaction _manageTransaction;
+  final AccountRepository? _accountRepository;
 
   TransactionProvider(
     this._transactionRepository,
     this._categoryRepository,
-    this._manageTransaction,
-  );
+    this._manageTransaction, [
+    this._accountRepository,
+  ]);
 
   List<Transaction> _transactions = [];
   List<Category> _categories = [];
+  Map<String, AccountType> _accountTypeMap = {};
   bool _isLoading = false;
   String? _error;
 
-  /// Active date filter. Null means "show all".
-  DateTimeRange? _dateFilter;
+  /// Active filter criteria.
+  TransactionFilter _filter = TransactionFilter.empty;
 
   // — Cached Computations —
   int _todaysSpending = 0;
@@ -40,12 +46,24 @@ class TransactionProvider extends ChangeNotifier {
   List<Category> get categories => _categories;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  DateTimeRange? get dateFilter => _dateFilter;
+
+  /// Active filter object.
+  TransactionFilter get filter => _filter;
+
+  /// Whether any filter dimension is actively filtering.
+  bool get hasActiveFilter => _filter.isActive;
+
+  /// Number of active filter dimensions.
+  int get activeFilterCount => _filter.activeFilterCount;
+
+  /// Legacy date filter getter for backward compatibility.
+  DateTimeRange? get dateFilter => _filter.dateRange;
 
   int get todaysSpending => _todaysSpending;
   int get thisMonthsSpending => _thisMonthsSpending;
   List<Transaction> get filteredTransactions => _filteredTransactions;
-  Map<DateTime, List<Transaction>> get filteredGroupedByDate => _filteredGroupedByDate;
+  Map<DateTime, List<Transaction>> get filteredGroupedByDate =>
+      _filteredGroupedByDate;
   Map<DateTime, List<Transaction>> get groupedByDate => _groupedByDate;
 
   /// Returns a category by [id] from the in-memory list, or `null`.
@@ -54,6 +72,15 @@ class TransactionProvider extends ChangeNotifier {
       return _categories.firstWhere((c) => c.id == id);
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Updates cached account type mappings used for filtering by account type.
+  void updateAccountTypes(List<Account> accounts) {
+    _accountTypeMap = {for (final a in accounts) a.id: a.type};
+    if (_filter.accountTypes != null && _filter.accountTypes!.isNotEmpty) {
+      _recomputeFiltered();
+      notifyListeners();
     }
   }
 
@@ -89,30 +116,86 @@ class TransactionProvider extends ChangeNotifier {
     _recomputeFiltered();
   }
 
+  bool _matchesFilter(Transaction txn, TransactionFilter filter) {
+    // 1. Date range filter (inclusive of full start and end days)
+    if (filter.dateRange != null) {
+      final start = DateTime(
+        filter.dateRange!.start.year,
+        filter.dateRange!.start.month,
+        filter.dateRange!.start.day,
+      );
+      final end = DateTime(
+        filter.dateRange!.end.year,
+        filter.dateRange!.end.month,
+        filter.dateRange!.end.day,
+        23,
+        59,
+        59,
+      );
+      if (txn.dateTime.isBefore(start) || txn.dateTime.isAfter(end)) {
+        return false;
+      }
+    }
+
+    // 2. Text search (case-insensitive on note/description)
+    if (filter.searchText != null && filter.searchText!.trim().isNotEmpty) {
+      final query = filter.searchText!.trim().toLowerCase();
+      final note = txn.note?.toLowerCase() ?? '';
+      if (!note.contains(query)) return false;
+    }
+
+    // 3. Specific Accounts filter (matches source OR destination account)
+    if (filter.accountIds != null && filter.accountIds!.isNotEmpty) {
+      final matchesSource = filter.accountIds!.contains(txn.accountId);
+      final matchesDest = txn.toAccountId != null &&
+          filter.accountIds!.contains(txn.toAccountId);
+      if (!matchesSource && !matchesDest) return false;
+    }
+
+    // 4. Account Type filter (matches if source OR destination is of this type)
+    if (filter.accountTypes != null && filter.accountTypes!.isNotEmpty) {
+      final sourceType = _accountTypeMap[txn.accountId];
+      final destType =
+          txn.toAccountId != null ? _accountTypeMap[txn.toAccountId] : null;
+      final sourceMatches =
+          sourceType != null && filter.accountTypes!.contains(sourceType);
+      final destMatches =
+          destType != null && filter.accountTypes!.contains(destType);
+      if (!sourceMatches && !destMatches) return false;
+    }
+
+    // 5. Transaction Type filter
+    if (filter.transactionTypes != null && filter.transactionTypes!.isNotEmpty) {
+      if (!filter.transactionTypes!.contains(txn.type)) return false;
+    }
+
+    // 6. Category filter
+    if (filter.categoryIds != null && filter.categoryIds!.isNotEmpty) {
+      if (!filter.categoryIds!.contains(txn.categoryId)) return false;
+    }
+
+    // 7. Amount Range filter
+    if (filter.minAmount != null && txn.amount < filter.minAmount!) {
+      return false;
+    }
+    if (filter.maxAmount != null && txn.amount > filter.maxAmount!) {
+      return false;
+    }
+
+    return true;
+  }
+
   void _recomputeFiltered() {
     _filteredGroupedByDate.clear();
-    
-    if (_dateFilter == null) {
+
+    if (!_filter.isActive) {
       _filteredTransactions = List.from(_transactions);
       _filteredGroupedByDate = Map.from(_groupedByDate);
       return;
     }
 
-    final start = DateTime(
-      _dateFilter!.start.year,
-      _dateFilter!.start.month,
-      _dateFilter!.start.day,
-    );
-    final end = DateTime(
-      _dateFilter!.end.year,
-      _dateFilter!.end.month,
-      _dateFilter!.end.day,
-      23, 59, 59,
-    );
-
-    _filteredTransactions = _transactions
-        .where((t) => !t.dateTime.isBefore(start) && !t.dateTime.isAfter(end))
-        .toList();
+    _filteredTransactions =
+        _transactions.where((t) => _matchesFilter(t, _filter)).toList();
 
     for (final txn in _filteredTransactions) {
       final dateKey = DateTime(
@@ -124,25 +207,45 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  /// Calculates the count of transactions matching [filter] without altering active filter.
+  int countMatching(TransactionFilter filter) {
+    if (!filter.isActive) return _transactions.length;
+    return _transactions.where((t) => _matchesFilter(t, filter)).length;
+  }
+
   // — Filter Actions —
 
-  /// Sets the date filter and notifies listeners.
-  void setDateFilter(DateTimeRange range) {
-    _dateFilter = range;
+  /// Sets the full transaction filter and recomputes the list.
+  void setFilter(TransactionFilter filter) {
+    _filter = filter;
     _recomputeFiltered();
     notifyListeners();
   }
 
-  /// Clears the date filter (show all).
+  /// Clears all filters and resets to showing all transactions.
+  void clearFilter() {
+    _filter = TransactionFilter.empty;
+    _recomputeFiltered();
+    notifyListeners();
+  }
+
+  /// Sets the date filter (for backward compatibility).
+  void setDateFilter(DateTimeRange range) {
+    _filter = _filter.copyWith(dateRange: range);
+    _recomputeFiltered();
+    notifyListeners();
+  }
+
+  /// Clears the date filter (for backward compatibility).
   void clearDateFilter() {
-    _dateFilter = null;
+    _filter = _filter.copyWith(clearDateRange: true);
     _recomputeFiltered();
     notifyListeners();
   }
 
   // — Data Actions —
 
-  /// Loads all transactions and categories.
+  /// Loads all transactions, categories, and account types.
   Future<void> loadAll() async {
     _isLoading = true;
     _error = null;
@@ -151,6 +254,10 @@ class TransactionProvider extends ChangeNotifier {
     try {
       _transactions = await _transactionRepository.getAll();
       _categories = await _categoryRepository.getAll();
+      if (_accountRepository != null) {
+        final accounts = await _accountRepository.getAll();
+        _accountTypeMap = {for (final a in accounts) a.id: a.type};
+      }
       _recomputeStats();
     } catch (e) {
       _error = e.toString();
@@ -168,6 +275,10 @@ class TransactionProvider extends ChangeNotifier {
 
     try {
       _transactions = await _transactionRepository.getAll();
+      if (_accountRepository != null && _accountTypeMap.isEmpty) {
+        final accounts = await _accountRepository.getAll();
+        _accountTypeMap = {for (final a in accounts) a.id: a.type};
+      }
       _recomputeStats();
     } catch (e) {
       _error = e.toString();

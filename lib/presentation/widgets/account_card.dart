@@ -103,7 +103,9 @@ class AccountCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Row(
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -124,7 +126,6 @@ class AccountCard extends StatelessWidget {
                             ),
                           ),
                           if (account.hasBillingCycle) ...[
-                            const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 6,

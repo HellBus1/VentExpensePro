@@ -225,6 +225,7 @@ class _AddEditAccountSheetState extends State<AddEditAccountSheet> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
+                    key: const ValueKey('statement_close_day_dropdown'),
                     value: _statementCloseDay,
                     isExpanded: true,
                     hint: const Text('Select statement close day (1–28)'),

@@ -4,10 +4,12 @@ import '../../domain/entities/account.dart';
 import '../../domain/entities/enums.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/account_repository.dart';
+import '../../domain/usecases/calculate_billing_breakdown.dart';
 import '../../domain/usecases/calculate_net_position.dart';
 import '../../domain/usecases/manage_account.dart';
 import '../../domain/usecases/settle_credit_bill.dart';
 import '../../domain/usecases/settle_debt.dart';
+import '../../domain/value_objects/billing_breakdown.dart';
 
 /// Manages account state and net position calculation.
 class AccountProvider extends ChangeNotifier {
@@ -16,14 +18,16 @@ class AccountProvider extends ChangeNotifier {
   final ManageAccount _manageAccount;
   final SettleCreditBill _settleCreditBill;
   final SettleDebt _settleDebt;
+  final CalculateBillingBreakdown _calculateBillingBreakdown;
 
   AccountProvider(
     this._accountRepository,
     this._calculateNetPosition,
     this._manageAccount,
     this._settleCreditBill,
-    this._settleDebt,
-  );
+    this._settleDebt, [
+    this._calculateBillingBreakdown = const CalculateBillingBreakdown(),
+  ]);
 
   List<Account> _accounts = [];
   NetPositionBreakdown? _breakdown;
@@ -65,6 +69,15 @@ class AccountProvider extends ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Calculates the billed and unbilled financial aggregates for a credit card.
+  BillingBreakdown getBillingBreakdown(
+    Account creditCard,
+    List<Transaction> transactions, [
+    DateTime? now,
+  ]) {
+    return _calculateBillingBreakdown(creditCard, transactions, now);
   }
 
   // — Actions —
