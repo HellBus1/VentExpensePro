@@ -9,6 +9,7 @@ import '../../domain/entities/account.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/enums.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/value_objects/billing_breakdown.dart';
 import '../models/category_model.dart';
 
 class PdfReportService {
@@ -26,6 +27,9 @@ class PdfReportService {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    List<Account>? debtAccounts,
+    List<Account>? creditCards,
+    Map<String, BillingBreakdown>? billingBreakdowns,
   }) async {
     final pdf = pw.Document();
 
@@ -312,11 +316,433 @@ class PdfReportService {
       ),
     );
 
+    // Add Debt Summary Page if debt accounts exist
+    if (debtAccounts != null && debtAccounts.isNotEmpty) {
+      _addDebtSummaryPage(
+        pdf: pdf,
+        debtAccounts: debtAccounts,
+        allTransactions: transactions,
+        loraRegular: loraRegular,
+        loraBold: loraBold,
+        monoRegular: monoRegular,
+        currencyFormatter: currencyFormatter,
+        formatter: formatter,
+      );
+    }
+
+    // Add Credit Card Billing Page if credit cards exist
+    if (creditCards != null && creditCards.isNotEmpty && billingBreakdowns != null && billingBreakdowns.isNotEmpty) {
+      _addCreditCardBillingPage(
+        pdf: pdf,
+        creditCards: creditCards,
+        billingBreakdowns: billingBreakdowns,
+        loraRegular: loraRegular,
+        loraBold: loraBold,
+        monoRegular: monoRegular,
+        currencyFormatter: currencyFormatter,
+        formatter: formatter,
+      );
+    }
+
     final output = await getTemporaryDirectory();
     final fileName = 'vent_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File('${output.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
     return file.path;
+  }
+
+  void _addDebtSummaryPage({
+    required pw.Document pdf,
+    required List<Account> debtAccounts,
+    required List<Transaction> allTransactions,
+    required pw.Font loraRegular,
+    required pw.Font loraBold,
+    required pw.Font monoRegular,
+    required NumberFormat currencyFormatter,
+    required DateFormat formatter,
+  }) {
+    final receivables = debtAccounts.where((a) => a.balance > 0).toList()
+      ..sort((a, b) => b.balance.compareTo(a.balance));
+    final payables = debtAccounts.where((a) => a.balance < 0).toList()
+      ..sort((a, b) => a.balance.compareTo(b.balance));
+
+    final totalReceivable = receivables.fold<int>(0, (sum, a) => sum + a.balance);
+    final totalPayable = payables.fold<int>(0, (sum, a) => sum + a.balance.abs());
+    final netDebtPosition = totalReceivable - totalPayable;
+
+    final debtIds = debtAccounts.map((a) => a.id).toSet();
+    final settlements = allTransactions
+        .where((t) => t.isSettlement && (debtIds.contains(t.accountId) || debtIds.contains(t.toAccountId)))
+        .toList()
+      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          buildBackground: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Container(color: _paper),
+          ),
+        ),
+        header: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('VENTEXPENSE PRO', style: pw.TextStyle(font: loraBold, fontSize: 24, color: _inkBlue)),
+                pw.Text('DEBT & LENDING SUMMARY', style: pw.TextStyle(font: monoRegular, fontSize: 10, color: _inkLight)),
+              ],
+            ),
+            pw.SizedBox(height: 8),
+            pw.Divider(color: _inkBlue, thickness: 1),
+            pw.SizedBox(height: 16),
+          ],
+        ),
+        build: (context) => [
+          // Net Position Overview Card
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              border: pw.Border.all(color: _inkLight, width: 0.5),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _label('RECEIVABLE (THEY OWE YOU)', loraBold),
+                    pw.Text('+${currencyFormatter.format(totalReceivable)}', style: pw.TextStyle(font: monoRegular, fontSize: 14, color: _inkGreen)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _label('PAYABLE (YOU OWE)', loraBold),
+                    pw.Text('-${currencyFormatter.format(totalPayable)}', style: pw.TextStyle(font: monoRegular, fontSize: 14, color: _stampRed)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _label('NET DEBT POSITION', loraBold),
+                    pw.Text(
+                      '${netDebtPosition >= 0 ? '+' : ''}${currencyFormatter.format(netDebtPosition)}',
+                      style: pw.TextStyle(
+                        font: monoRegular,
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                        color: netDebtPosition >= 0 ? _inkGreen : _stampRed,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Receivables Table
+          _sectionTitle('RECEIVABLE (PIUTANG)', loraBold),
+          pw.SizedBox(height: 8),
+          if (receivables.isEmpty)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6),
+              child: pw.Text('No outstanding receivables.', style: pw.TextStyle(font: loraRegular, fontSize: 10, color: _inkLight)),
+            )
+          else
+            pw.Table(
+              border: const pw.TableBorder(
+                bottom: pw.BorderSide(color: _inkLight, width: 0.5),
+                horizontalInside: pw.BorderSide(color: _inkLight, width: 0.2),
+              ),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(6),
+                1: const pw.FlexColumnWidth(4),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    _tableHeader('PERSON / ACCOUNT', monoRegular),
+                    _tableHeader('AMOUNT', monoRegular, align: pw.Alignment.centerRight),
+                  ],
+                ),
+                ...receivables.map((acc) => pw.TableRow(
+                  children: [
+                    _tableCell(acc.name, loraRegular),
+                    _tableCell('+${currencyFormatter.format(acc.balance)}', monoRegular, color: _inkGreen, align: pw.Alignment.centerRight),
+                  ],
+                )),
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  children: [
+                    _tableCell('Total Receivable', loraBold),
+                    _tableCell('+${currencyFormatter.format(totalReceivable)}', monoRegular, color: _inkGreen, align: pw.Alignment.centerRight),
+                  ],
+                ),
+              ],
+            ),
+          pw.SizedBox(height: 20),
+
+          // Payables Table
+          _sectionTitle('PAYABLE (HUTANG)', loraBold),
+          pw.SizedBox(height: 8),
+          if (payables.isEmpty)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6),
+              child: pw.Text('No outstanding payables.', style: pw.TextStyle(font: loraRegular, fontSize: 10, color: _inkLight)),
+            )
+          else
+            pw.Table(
+              border: const pw.TableBorder(
+                bottom: pw.BorderSide(color: _inkLight, width: 0.5),
+                horizontalInside: pw.BorderSide(color: _inkLight, width: 0.2),
+              ),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(6),
+                1: const pw.FlexColumnWidth(4),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    _tableHeader('PERSON / ACCOUNT', monoRegular),
+                    _tableHeader('AMOUNT', monoRegular, align: pw.Alignment.centerRight),
+                  ],
+                ),
+                ...payables.map((acc) => pw.TableRow(
+                  children: [
+                    _tableCell(acc.name, loraRegular),
+                    _tableCell('-${currencyFormatter.format(acc.balance.abs())}', monoRegular, color: _stampRed, align: pw.Alignment.centerRight),
+                  ],
+                )),
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  children: [
+                    _tableCell('Total Payable', loraBold),
+                    _tableCell('-${currencyFormatter.format(totalPayable)}', monoRegular, color: _stampRed, align: pw.Alignment.centerRight),
+                  ],
+                ),
+              ],
+            ),
+          pw.SizedBox(height: 20),
+
+          // Settlement History
+          if (settlements.isNotEmpty) ...[
+            _sectionTitle('RECENT SETTLEMENTS', loraBold),
+            pw.SizedBox(height: 8),
+            pw.Table(
+              border: const pw.TableBorder(
+                bottom: pw.BorderSide(color: _inkLight, width: 0.5),
+                horizontalInside: pw.BorderSide(color: _inkLight, width: 0.2),
+              ),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(3),
+                1: const pw.FlexColumnWidth(5),
+                2: const pw.FlexColumnWidth(3),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    _tableHeader('DATE', monoRegular),
+                    _tableHeader('DESCRIPTION', monoRegular),
+                    _tableHeader('AMOUNT', monoRegular, align: pw.Alignment.centerRight),
+                  ],
+                ),
+                ...settlements.take(15).map((s) => pw.TableRow(
+                  children: [
+                    _tableCell(formatter.format(s.dateTime), loraRegular),
+                    _tableCell(s.note ?? 'Debt Settlement', loraRegular),
+                    _tableCell(currencyFormatter.format(s.amount), monoRegular, align: pw.Alignment.centerRight),
+                  ],
+                )),
+              ],
+            ),
+          ],
+        ],
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 10),
+          child: pw.Text(
+            'Page ${context.pageNumber} of ${context.pagesCount}',
+            style: pw.TextStyle(font: loraRegular, fontSize: 10, color: _inkLight),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _addCreditCardBillingPage({
+    required pw.Document pdf,
+    required List<Account> creditCards,
+    required Map<String, BillingBreakdown> billingBreakdowns,
+    required pw.Font loraRegular,
+    required pw.Font loraBold,
+    required pw.Font monoRegular,
+    required NumberFormat currencyFormatter,
+    required DateFormat formatter,
+  }) {
+    int totalAllCards = 0;
+    for (final card in creditCards) {
+      final breakdown = billingBreakdowns[card.id];
+      if (breakdown != null) {
+        totalAllCards += breakdown.totalOutstanding;
+      }
+    }
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          buildBackground: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Container(color: _paper),
+          ),
+        ),
+        header: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('VENTEXPENSE PRO', style: pw.TextStyle(font: loraBold, fontSize: 24, color: _inkBlue)),
+                pw.Text('CREDIT CARD BILLING SUMMARY', style: pw.TextStyle(font: monoRegular, fontSize: 10, color: _inkLight)),
+              ],
+            ),
+            pw.SizedBox(height: 8),
+            pw.Divider(color: _inkBlue, thickness: 1),
+            pw.SizedBox(height: 16),
+          ],
+        ),
+        build: (context) => [
+          // Total All Cards Card
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              border: pw.Border.all(color: _inkLight, width: 0.5),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _label('TOTAL CREDIT OUTSTANDING', loraBold),
+                    pw.Text('Across ${creditCards.length} configured card${creditCards.length > 1 ? 's' : ''}', style: pw.TextStyle(font: loraRegular, fontSize: 10, color: _inkLight)),
+                  ],
+                ),
+                pw.Text(
+                  currencyFormatter.format(totalAllCards),
+                  style: pw.TextStyle(
+                    font: monoRegular,
+                    fontSize: 18,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _stampRed,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Cards List
+          ...creditCards.map((card) {
+            final breakdown = billingBreakdowns[card.id];
+            if (breakdown == null) return pw.SizedBox.shrink();
+
+            final billedRange = breakdown.billedPeriod != null
+                ? '${formatter.format(breakdown.billedPeriod!.start)} - ${formatter.format(breakdown.billedPeriod!.end)}'
+                : 'Previous Cycle';
+            final unbilledRange = breakdown.unbilledPeriod != null
+                ? '${formatter.format(breakdown.unbilledPeriod!.start)} - ${formatter.format(breakdown.unbilledPeriod!.end)}'
+                : 'Current Cycle';
+
+            return pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 16),
+              padding: const pw.EdgeInsets.all(14),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.white,
+                border: pw.Border.all(color: _inkLight, width: 0.5),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(card.name, style: pw.TextStyle(font: loraBold, fontSize: 13, color: _inkBlue)),
+                      pw.Text('Statement Closes: ${card.statementCloseDay ?? '-'}th', style: pw.TextStyle(font: monoRegular, fontSize: 9, color: _inkLight)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Divider(color: _inkLight, thickness: 0.3),
+                  pw.SizedBox(height: 10),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          _label('BILLED STATEMENT ($billedRange)', loraBold),
+                          pw.Text(currencyFormatter.format(breakdown.billedAmount), style: pw.TextStyle(font: monoRegular, fontSize: 12, color: _stampRed)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          _label('UNBILLED CYCLE ($unbilledRange)', loraBold),
+                          pw.Text(currencyFormatter.format(breakdown.unbilledAmount), style: pw.TextStyle(font: monoRegular, fontSize: 12, color: _inkDark)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      _label('TOTAL OUTSTANDING', loraBold),
+                      pw.Text(
+                        currencyFormatter.format(breakdown.totalOutstanding),
+                        style: pw.TextStyle(font: monoRegular, fontSize: 13, fontWeight: pw.FontWeight.bold, color: _stampRed),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 10),
+          child: pw.Text(
+            'Page ${context.pageNumber} of ${context.pagesCount}',
+            style: pw.TextStyle(font: loraRegular, fontSize: 10, color: _inkLight),
+          ),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _sectionTitle(String text, pw.Font font) {
+    return pw.Text(
+      text,
+      style: pw.TextStyle(
+        font: font,
+        fontSize: 11,
+        color: _inkBlue,
+        letterSpacing: 1.1,
+      ),
+    );
   }
 
   pw.Widget _label(String text, pw.Font font) {

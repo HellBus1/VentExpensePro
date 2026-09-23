@@ -14,6 +14,7 @@ import 'domain/entities/transaction.dart';
 import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
+import 'domain/usecases/calculate_billing_breakdown.dart';
 import 'domain/usecases/calculate_net_position.dart';
 import 'domain/usecases/manage_account.dart';
 import 'domain/usecases/manage_transaction.dart';
@@ -96,7 +97,12 @@ class VentExpenseApp extends StatelessWidget {
           create: (_) => SyncProvider(sl<SyncData>()),
         ),
         ChangeNotifierProvider(
-          create: (_) => ReportsProvider(sl<GenerateReport>()),
+          create: (_) => ReportsProvider(
+            generateReportUseCase: sl<GenerateReport>(),
+            accountRepository: sl<AccountRepository>(),
+            transactionRepository: sl<TransactionRepository>(),
+            calculateBillingBreakdown: sl<CalculateBillingBreakdown>(),
+          ),
         ),
       ],
       child: MaterialApp(
@@ -179,7 +185,12 @@ class _HomeShellState extends State<HomeShell> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+          if (index == 2) {
+            context.read<ReportsProvider>().loadReportData();
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_outlined),

@@ -1,6 +1,7 @@
 import '../entities/account.dart';
 import '../entities/category.dart';
 import '../entities/transaction.dart';
+import '../value_objects/billing_breakdown.dart';
 
 /// Contract for generating platform-specific report files.
 abstract class ReportRepository {
@@ -12,6 +13,8 @@ abstract class ReportRepository {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    List<Account>? debtAccounts,
+    List<Account>? creditCards,
+    Map<String, BillingBreakdown>? billingBreakdowns,
   });
-
 }

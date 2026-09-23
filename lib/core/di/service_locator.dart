@@ -76,6 +76,7 @@ Future<void> initServiceLocator() async {
       transactionRepository: sl<TransactionRepository>(),
       accountRepository: sl<AccountRepository>(),
       categoryRepository: sl<CategoryRepository>(),
+      calculateBillingBreakdown: sl<CalculateBillingBreakdown>(),
     ),
   );
 }

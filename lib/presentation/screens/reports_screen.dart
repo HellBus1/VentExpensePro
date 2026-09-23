@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/enums.dart';
+import '../../domain/entities/transaction.dart';
 import '../painters/paper_background.dart';
 import '../providers/account_provider.dart';
 import '../providers/reports_provider.dart';
@@ -13,8 +14,48 @@ import '../providers/transaction_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 /// The reports screen — PDF / Excel generation and viewing.
-class ReportsScreen extends StatelessWidget {
+class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
+
+  @override
+  State<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends State<ReportsScreen> {
+  Object? _lastAccountsToken;
+  Object? _lastTransactionsToken;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ReportsProvider>().loadReportData();
+      }
+    });
+  }
+
+  void _checkAndReloadData(List<dynamic> accounts, List<dynamic> transactions) {
+    final accountsToken = Object.hash(
+      accounts.length,
+      accounts.isEmpty ? 0 : (accounts.first.balance ?? 0),
+      accounts.isEmpty ? 0 : (accounts.last.balance ?? 0),
+    );
+    final transactionsToken = Object.hash(
+      transactions.length,
+      transactions.isEmpty ? 0 : transactions.first.id,
+    );
+
+    if (_lastAccountsToken != accountsToken || _lastTransactionsToken != transactionsToken) {
+      _lastAccountsToken = accountsToken;
+      _lastTransactionsToken = transactionsToken;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<ReportsProvider>().loadReportData();
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +63,10 @@ class ReportsScreen extends StatelessWidget {
       child: Consumer2<ReportsProvider, AccountProvider>(
         builder: (context, reportsProvider, accountProvider, child) {
           final transactionProvider = context.watch<TransactionProvider>();
+          _checkAndReloadData(
+            accountProvider.accounts,
+            transactionProvider.transactions,
+          );
 
           final DateFormat formatter = DateFormat('dd MMM yyyy');
           final String dateRangeLabel =
@@ -30,8 +75,11 @@ class ReportsScreen extends StatelessWidget {
               ? '${formatter.format(reportsProvider.startDate!)} - ${formatter.format(reportsProvider.endDate!)}'
               : 'All Time';
 
-          return SingleChildScrollView(
-            key: const ValueKey('reports_scroll_view'),
+          return RefreshIndicator(
+            onRefresh: () => context.read<ReportsProvider>().loadReportData(),
+            child: SingleChildScrollView(
+              key: const ValueKey('reports_scroll_view'),
+              physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,6 +168,12 @@ class ReportsScreen extends StatelessWidget {
                   transactionProvider,
                 ),
                 const SizedBox(height: 32),
+
+                // — Debt & Lending Summary Section —
+                _buildDebtSummarySection(context, reportsProvider),
+
+                // — Credit Card Billing Breakdown Section —
+                _buildCreditCardBillingSection(context, reportsProvider),
 
                 if (reportsProvider.status == ReportStatus.loading)
                   const Center(
@@ -233,8 +287,9 @@ class ReportsScreen extends StatelessWidget {
                 ],
               ],
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }
@@ -604,6 +659,520 @@ class ReportsScreen extends StatelessWidget {
           ),
         );
       }
+    }
+  }
+
+  Widget _buildDebtSummarySection(
+    BuildContext context,
+    ReportsProvider rProvider,
+  ) {
+    final debtSummary = rProvider.debtSummary;
+    if (debtSummary == null || !debtSummary.hasDebts) {
+      return const SizedBox.shrink();
+    }
+
+    final currencyFormatter = NumberFormat.currency(
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    final receivables = debtSummary.people.where((p) => p.balance > 0).toList();
+    final payables = debtSummary.people.where((p) => p.balance < 0).toList();
+
+    return Container(
+      key: const ValueKey('reports_debt_summary_section'),
+      margin: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.paperElevated,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.handshake_outlined,
+                color: AppColors.inkBlue,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              _buildSectionTitle('DEBT & LENDING SUMMARY'),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Overview Strip
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'RECEIVABLE',
+                  sublabel: 'They owe you',
+                  amount:
+                      '+${currencyFormatter.format(debtSummary.totalReceivable)}',
+                  color: AppColors.inkGreen,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'PAYABLE',
+                  sublabel: 'You owe',
+                  amount:
+                      '-${currencyFormatter.format(debtSummary.totalPayable)}',
+                  color: AppColors.stampRed,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.paper,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.divider, width: 0.5),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Net Debt Position', style: AppTypography.label),
+                Text(
+                  '${debtSummary.netPosition >= 0 ? '+' : ''}${currencyFormatter.format(debtSummary.netPosition)}',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: debtSummary.netPosition >= 0
+                        ? AppColors.inkGreen
+                        : AppColors.stampRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Receivables list
+          if (receivables.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              'RECEIVABLE (PIUTANG)',
+              style: AppTypography.label.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...receivables.map(
+              (p) => _buildDebtPersonTile(
+                p,
+                currencyFormatter,
+                isReceivable: true,
+              ),
+            ),
+          ],
+
+          // Payables list
+          if (payables.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              'PAYABLE (HUTANG)',
+              style: AppTypography.label.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...payables.map(
+              (p) => _buildDebtPersonTile(
+                p,
+                currencyFormatter,
+                isReceivable: false,
+              ),
+            ),
+          ],
+
+          // Settlements history
+          if (debtSummary.settlementHistory.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+            Text(
+              'RECENT SETTLEMENTS',
+              style: AppTypography.label.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...debtSummary.settlementHistory
+                .take(5)
+                .map((s) => _buildSettlementTile(s, currencyFormatter)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String label,
+    required String sublabel,
+    required String amount,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.paper,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.divider, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTypography.label.copyWith(fontSize: 9)),
+          const SizedBox(height: 2),
+          Text(
+            sublabel,
+            style: AppTypography.bodySmall.copyWith(
+              fontSize: 11,
+              color: AppColors.inkLight,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            amount,
+            style: AppTypography.titleMedium.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebtPersonTile(
+    DebtPersonSummary person,
+    NumberFormat formatter, {
+    required bool isReceivable,
+  }) {
+    final amountColor = isReceivable ? AppColors.inkGreen : AppColors.stampRed;
+    final prefix = isReceivable ? '+' : '-';
+    final count = person.transactionCount;
+    final dateStr = person.latestTransaction != null
+        ? DateFormat('dd MMM').format(person.latestTransaction!.dateTime)
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.paper,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.divider, width: 0.5),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  person.account.name,
+                  style: AppTypography.titleMedium.copyWith(fontSize: 14),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$count item${count != 1 ? 's' : ''}${dateStr != null ? ' • Latest: $dateStr' : ''}',
+                  style: AppTypography.bodySmall.copyWith(
+                    fontSize: 11,
+                    color: AppColors.inkLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$prefix${formatter.format(person.balance.abs())}',
+            style: AppTypography.titleMedium.copyWith(
+              color: amountColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettlementTile(Transaction settlement, NumberFormat formatter) {
+    final dateStr = DateFormat('dd MMM yyyy').format(settlement.dateTime);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.check_circle_outline,
+            size: 16,
+            color: AppColors.inkGreen,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$dateStr • ${settlement.note ?? 'Settlement'}',
+              style: AppTypography.bodySmall.copyWith(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            formatter.format(settlement.amount),
+            style: AppTypography.bodySmall.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: AppColors.inkDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditCardBillingSection(
+    BuildContext context,
+    ReportsProvider rProvider,
+  ) {
+    final billingReports = rProvider.billingReports;
+    if (billingReports.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final currencyFormatter = NumberFormat.currency(
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    final dateFormatter = DateFormat('dd MMM');
+
+    int totalAllCards = 0;
+    for (final report in billingReports) {
+      totalAllCards += report.breakdown.totalOutstanding;
+    }
+
+    return Container(
+      key: const ValueKey('reports_credit_billing_section'),
+      margin: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.paperElevated,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.credit_card, color: AppColors.inkBlue, size: 20),
+              const SizedBox(width: 8),
+              _buildSectionTitle('CREDIT CARD BILLING BREAKDOWN'),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          ...billingReports.map((report) {
+            final card = report.account;
+            final breakdown = report.breakdown;
+            final billedRange = breakdown.billedPeriod != null
+                ? '${dateFormatter.format(breakdown.billedPeriod!.start)} – ${dateFormatter.format(breakdown.billedPeriod!.end)}'
+                : 'Closed Period';
+            final unbilledRange = breakdown.unbilledPeriod != null
+                ? '${dateFormatter.format(breakdown.unbilledPeriod!.start)} – ${dateFormatter.format(breakdown.unbilledPeriod!.end)}'
+                : 'Current Period';
+
+            final total = breakdown.totalOutstanding;
+            final billedRatio = total > 0
+                ? (breakdown.billedAmount / total).clamp(0.0, 1.0)
+                : 0.0;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.divider, width: 0.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(card.name, style: AppTypography.titleMedium),
+                      if (card.statementCloseDay != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.inkBlue.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Closes ${card.statementCloseDay}${_getDaySuffix(card.statementCloseDay!)}',
+                            style: AppTypography.label.copyWith(
+                              fontSize: 9,
+                              color: AppColors.inkBlue,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Progress bar comparison
+                  if (total > 0)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: SizedBox(
+                        height: 6,
+                        child: Row(
+                          children: [
+                            if (breakdown.billedAmount > 0)
+                              Expanded(
+                                flex: (billedRatio * 100).round().clamp(1, 100),
+                                child: Container(color: AppColors.stampRed),
+                              ),
+                            if (breakdown.unbilledAmount > 0)
+                              Expanded(
+                                flex: ((1.0 - billedRatio) * 100)
+                                    .round()
+                                    .clamp(1, 100),
+                                child: Container(
+                                  color: AppColors.inkBlue.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(height: 6, color: AppColors.divider),
+                    ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Billed ($billedRange)',
+                            style: AppTypography.label.copyWith(fontSize: 9),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            currencyFormatter.format(breakdown.billedAmount),
+                            style: AppTypography.bodySmall.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.stampRed,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Unbilled ($unbilledRange)',
+                            style: AppTypography.label.copyWith(fontSize: 9),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            currencyFormatter.format(breakdown.unbilledAmount),
+                            style: AppTypography.bodySmall.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Card Balance',
+                        style: AppTypography.label,
+                      ),
+                      Text(
+                        currencyFormatter.format(breakdown.totalOutstanding),
+                        style: AppTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.stampRed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          // Aggregate All Cards Footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.inkBlue,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'TOTAL ALL CREDIT CARDS',
+                  style: AppTypography.label.copyWith(
+                    color: AppColors.paper,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                Text(
+                  currencyFormatter.format(totalAllCards),
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.paper,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDaySuffix(int day) {
+    if (day >= 11 && day <= 13) return 'th';
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
     }
   }
 }

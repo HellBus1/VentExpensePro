@@ -3,6 +3,7 @@ import '../../domain/entities/account.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/report_repository.dart';
+import '../../domain/value_objects/billing_breakdown.dart';
 
 class ReportRepositoryImpl implements ReportRepository {
   final PdfReportService pdfService;
@@ -19,6 +20,9 @@ class ReportRepositoryImpl implements ReportRepository {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    List<Account>? debtAccounts,
+    List<Account>? creditCards,
+    Map<String, BillingBreakdown>? billingBreakdowns,
   }) {
     return pdfService.generate(
       transactions: transactions,
@@ -27,6 +31,9 @@ class ReportRepositoryImpl implements ReportRepository {
       accountId: accountId,
       startDate: startDate,
       endDate: endDate,
+      debtAccounts: debtAccounts,
+      creditCards: creditCards,
+      billingBreakdowns: billingBreakdowns,
     );
   }
 }

@@ -8,8 +8,13 @@ import 'package:vent_expense_pro/domain/repositories/category_repository.dart';
 import 'package:vent_expense_pro/domain/repositories/report_repository.dart';
 import 'package:vent_expense_pro/domain/repositories/transaction_repository.dart';
 import 'package:vent_expense_pro/domain/usecases/generate_report.dart';
+import 'package:vent_expense_pro/domain/value_objects/billing_breakdown.dart';
 
 class FakeReportRepository implements ReportRepository {
+  List<Account>? capturedDebtAccounts;
+  List<Account>? capturedCreditCards;
+  Map<String, BillingBreakdown>? capturedBillingBreakdowns;
+
   @override
   Future<String> generatePdf({
     required List<Transaction> transactions,
@@ -18,21 +23,32 @@ class FakeReportRepository implements ReportRepository {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
-  }) async => 'pdf_path';
+    List<Account>? debtAccounts,
+    List<Account>? creditCards,
+    Map<String, BillingBreakdown>? billingBreakdowns,
+  }) async {
+    capturedDebtAccounts = debtAccounts;
+    capturedCreditCards = creditCards;
+    capturedBillingBreakdowns = billingBreakdowns;
+    return 'pdf_path';
+  }
 }
 
 class FakeTransactionRepository implements TransactionRepository {
   final List<Transaction> txns;
   FakeTransactionRepository(this.txns);
-  
+
   @override
   Future<List<Transaction>> getAll() async => txns;
-  
+
   @override
   Future<List<Transaction>> getByAccount(String accountId) async => [];
 
   @override
-  Future<List<Transaction>> getByDateRange(DateTime start, DateTime end) async => [];
+  Future<List<Transaction>> getByDateRange(
+    DateTime start,
+    DateTime end,
+  ) async => [];
 
   @override
   Future<Transaction?> getById(String id) async => null;
@@ -48,11 +64,15 @@ class FakeTransactionRepository implements TransactionRepository {
 }
 
 class FakeAccountRepository implements AccountRepository {
-  @override
-  Future<List<Account>> getAll() async => [];
+  final List<Account> accounts;
+  FakeAccountRepository([this.accounts = const []]);
 
   @override
-  Future<List<Account>> getByType(AccountType type) async => [];
+  Future<List<Account>> getAll() async => accounts;
+
+  @override
+  Future<List<Account>> getByType(AccountType type) async =>
+      accounts.where((a) => a.type == type).toList();
 
   @override
   Future<Account?> getById(String id) async => null;
@@ -89,7 +109,9 @@ class FakeCategoryRepository implements CategoryRepository {
 
 void main() {
   late GenerateReport generateReport;
+  late FakeReportRepository fakeReportRepository;
   late List<Transaction> testTransactions;
+  late List<Account> testAccounts;
 
   setUp(() {
     testTransactions = [
@@ -111,10 +133,38 @@ void main() {
       ),
     ];
 
+    final created = DateTime(2024, 1, 1);
+    testAccounts = [
+      Account(
+        id: 'acc1',
+        name: 'Checking',
+        type: AccountType.debit,
+        balance: 1000,
+        createdAt: created,
+      ),
+      Account(
+        id: 'debt1',
+        name: 'Alex Pratama',
+        type: AccountType.debt,
+        balance: 500000,
+        createdAt: created,
+      ),
+      Account(
+        id: 'card1',
+        name: 'BCA Card',
+        type: AccountType.credit,
+        balance: -200000,
+        statementCloseDay: 20,
+        createdAt: created,
+      ),
+    ];
+
+    fakeReportRepository = FakeReportRepository();
+
     generateReport = GenerateReport(
-      reportRepository: FakeReportRepository(),
+      reportRepository: fakeReportRepository,
       transactionRepository: FakeTransactionRepository(testTransactions),
-      accountRepository: FakeAccountRepository(),
+      accountRepository: FakeAccountRepository(testAccounts),
       categoryRepository: FakeCategoryRepository(),
     );
   });
@@ -126,5 +176,32 @@ void main() {
     );
 
     expect(path, 'pdf_path');
+  });
+
+  test('should collect debt accounts and credit cards by default', () async {
+    await generateReport(type: 'pdf');
+
+    expect(fakeReportRepository.capturedDebtAccounts, isNotNull);
+    expect(fakeReportRepository.capturedDebtAccounts!.length, 1);
+    expect(fakeReportRepository.capturedDebtAccounts!.first.name, 'Alex Pratama');
+
+    expect(fakeReportRepository.capturedCreditCards, isNotNull);
+    expect(fakeReportRepository.capturedCreditCards!.length, 1);
+    expect(fakeReportRepository.capturedCreditCards!.first.name, 'BCA Card');
+
+    expect(fakeReportRepository.capturedBillingBreakdowns, isNotNull);
+    expect(fakeReportRepository.capturedBillingBreakdowns!.containsKey('card1'), isTrue);
+  });
+
+  test('should omit debt accounts and credit cards when flags are false', () async {
+    await generateReport(
+      type: 'pdf',
+      includeDebtSummary: false,
+      includeBillingBreakdown: false,
+    );
+
+    expect(fakeReportRepository.capturedDebtAccounts, isNull);
+    expect(fakeReportRepository.capturedCreditCards, isNull);
+    expect(fakeReportRepository.capturedBillingBreakdowns, isNull);
   });
 }
