@@ -1,108 +1,134 @@
 # VentExpensePro 📈
 
-**The Analog Digital Ledger** — A lightweight, privacy-first personal finance application built with Flutter.
+**The Analog Digital Ledger** — A privacy-first, tactile personal finance and debt management application built with Flutter.
 
-VentExpensePro combines the simplicity of a paper ledger with the power of modern digital tools. It is designed for users who want total control over their financial data without compromising on aesthetics or ease of use.
-
----
-
-## ✨ Features
-
-### 📒 Smart Ledger
-*   **Effortless Logging**: Add transactions in seconds with a streamlined interface.
-*   **Categorization**: Organize expenses and income with customizable categories.
-*   **Rich Details**: Track dates, notes, and payment methods for every entry.
-
-### 🏦 Account Management
-*   **Multi-Account Support**: Manage Bank accounts, Cash, Credit Cards, and Wallets in one place.
-*   **Net Position**: Instantly view your total financial standing across all accounts.
-*   **Credit Settlement**: Specialized workflow for settling credit card bills.
-
-### 📊 Reports & Insights
-*   **Visual Analytics**: Understand your spending patterns with dynamic charts (fl_chart).
-*   **PDF Export**: Generate professional expense reports for sharing or archival.
-*   **Data Filtering**: Drill down into your data by date range or account.
-
-### ☁️ Privacy-First Sync
-*   **Google Drive Sync**: Securely backup and sync your data using your own Google Drive.
-*   **App Data Scope**: Uses the `drive.appdata` hidden folder scope, ensuring your data is only accessible by the app.
-*   **Offline First**: Full functionality without an internet connection.
-
-### 🎨 Premium Design
-*   **Flat Aesthetic**: A clean, modern "Flat Design" look that prioritizes readability.
-*   **Custom Typography**: Features *Lora* for elegance and *JetBrains Mono* for data precision.
-*   **Micro-Animations**: Smooth transitions and interactive elements for a premium feel.
+VentExpensePro combines the intentionality and elegance of a physical paper ledger with modern automated financial calculations: multi-dimensional search filtering, credit card billing cycle modeling, personal debt tracking (*piutang* / *hutang*), bank-ready multi-page PDF generation, and sandboxed Google Drive cloud synchronization.
 
 ---
 
-## 🛠️ Tech Stack
+## 📱 Visual Showcase (v2.0.0)
 
-*   **Framework**: [Flutter](https://flutter.dev/) (3.11+)
-*   **State Management**: [Provider](https://pub.dev/packages/provider)
-*   **Local Database**: [Sqflite](https://pub.dev/packages/sqflite) (SQLite)
-*   **Dependency Injection**: [GetIt](https://pub.dev/packages/get_it)
-*   **APIs & Infrastructure**:
-    *   Google Drive API (Backup/Sync)
-    *   Firebase Crashlytics (Crash Reporting)
-*   **Analytics & Reporting**:
-    *   [fl_chart](https://pub.dev/packages/fl_chart)
-    *   [pdf](https://pub.dev/packages/pdf)
+| Smart Ledger Feed | 7-Dimensional Filters | Filtered Ledger View |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/01_ledger_main.png" width="260" alt="Smart Ledger Feed" /> | <img src="docs/screenshots/02_transaction_filter_modal.png" width="260" alt="Transaction Filter Modal" /> | <img src="docs/screenshots/03_ledger_filtered.png" width="260" alt="Filtered Ledger View" /> |
+| *Continuous receipt journal, billing carousel, and net position* | *7 orthogonal dimensions with real-time match counting* | *Active filter chips with surgical one-tap removal* |
+
+| Accounts & Net Position | Personal Debts (*Piutang & Hutang*) | Settle Debt Workflow |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/04_accounts_main.png" width="260" alt="Accounts Screen" /> | <img src="docs/screenshots/05_personal_debts.png" width="260" alt="Personal Debts Section" /> | <img src="docs/screenshots/06_settle_debt_sheet.png" width="260" alt="Settle Debt Sheet" /> |
+| *Assets vs. liabilities breakdown with real-time solvency* | *Person-as-account debt tracking with debt summary strip* | *Auto-direction detection and atomic balance adjustment* |
+
+| Quick Add Transaction | In-App Analytics | Bank-Ready PDF Export |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/07_quick_add_transaction.png" width="260" alt="Quick Add Sheet" /> | <img src="docs/screenshots/08_reports_analytics.png" width="260" alt="Reports Screen" /> | <img src="images/09_pdf_generation.png" width="260" alt="PDF Statement Export" /> |
+| *Expense, income, and transfer logging with validation* | *Dynamic date/account filters, charts, and debt summaries* | *Archival multi-page statements with dedicated appendices* |
+
+---
+
+## ✨ Core Features
+
+### 📒 Smart Ledger & Tactile Feed
+* **Analog Receipt Aesthetics**: Styled after physical cash register tapes with jagged edges, perforation lines, and warm archival paper canvases (`#FFF8F0`).
+* **Consolidated Net Position**: Real-time solvency indicator ($\text{Total Assets} - \text{Total Liabilities}$) updating reactively on every transaction.
+* **Quick Stats Strip**: At-a-glance daily and monthly spending metrics.
+* **Billing Cycle Carousel**: Horizontal overview cards tracking credit card cutoffs and current unbilled charges.
+
+### 🔍 7-Dimensional Filter Engine
+* **Orthogonal Search Dimensions**: Search across free text notes, transaction types (`expense`, `income`, `transfer`), specific accounts, account categories (bank, cash, credit, debt), expense categories, min/max amounts, and custom date ranges.
+* **Live Match Previews (`countMatching`)**: Instant feedback inside the filter modal indicating exactly how many transactions match current selections before applying.
+* **Surgical Chip Dismissal**: Active filters render as dismissal chips on the ledger feed for quick removal without wiping entire filter sets.
+
+### 🏦 Accounts & Personal Debt Engine
+* **Asset vs. Liability Segregation**: Clean separation between liquidity assets (debit, cash) and obligations (credit cards, payables).
+* **Person-as-Account Architecture**: Tracks loans and borrowings on an individual basis.
+  * **Receivable (*Piutang*)**: Positive balance — money owed to you, counting toward total assets.
+  * **Payable (*Hutang*)**: Negative balance — money you owe others, counting toward total liabilities.
+* **Automated Settlement (`SettleDebt`)**: Automatically detects cash flow direction, adjusts both balances atomically, logs audit records, and marks settled debts with an authentic **"PAID IN FULL"** stamp.
+
+### 💳 Credit Card Billing Cycles & Pay Bill
+* **Statement Close Day (1–28)**: Configures statement closing cutoffs with month-end date clamping.
+* **Unbilled vs. Billed Segregation**: Automatically isolates charges from previous closed cycles (due for payment) from active ongoing spending.
+* **Transfer Invariant Enforcement**: Generic transfers cannot originate from or deposit directly into credit accounts.
+* **One-Touch Pay Bill (`SettleCreditBill`)**: Dedicated payment flow deducting from bank/cash and reducing credit card liabilities.
+
+### 📊 In-App Analytics & Multi-Page PDF Statements
+* **Dynamic Visual Charts**: Category donut charts (`fl_chart`), income vs. expense breakdowns, and reactive token-hash auto-refreshes.
+* **Archival Multi-Page Statements (`PdfReportService`)**:
+  * Rendered in vintage typography (*Lora* serif and *JetBrains Mono*).
+  * **Main Statement**: Executive summary, category charts, and itemized transaction tables.
+  * **Dedicated Appendix 1**: Comprehensive Debt & Lending summary with receivables, payables, and settlement history.
+  * **Dedicated Appendix 2**: Credit card billing summary with cutoff dates, billed/unbilled amounts, and total credit liabilities.
+* **Native Document Sharing**: Instant export and sharing via `share_plus`.
+
+### ☁️ Privacy-First Cloud Sync
+* **Google Drive AppData Scope**: Backups are written directly to your private, hidden Google Drive app directory (`drive.appdata`). Invisible in general Drive folders and inaccessible by third parties.
+* **Local-First & Zero Server**: No central databases or tracking servers. Full functionality completely offline.
+
+---
+
+## 🛠️ Tech Stack & Engineering Standards
+
+* **Framework**: [Flutter](https://flutter.dev/) (3.11+) & Pure Dart
+* **Architecture**: Clean Architecture (Presentation, Domain, Data, Core)
+* **State Management**: [Provider](https://pub.dev/packages/provider)
+* **Local Persistence**: [Sqflite](https://pub.dev/packages/sqflite) (SQLite v2 with sequential schema migrations)
+* **Dependency Injection**: [GetIt](https://pub.dev/packages/get_it) (`sl`)
+* **Visualization & Documents**:
+  * [fl_chart](https://pub.dev/packages/fl_chart) for dynamic vector charts
+  * [pdf](https://pub.dev/packages/pdf) & [path_provider](https://pub.dev/packages/path_provider) for document compilation
+  * [share_plus](https://pub.dev/packages/share_plus) for native sharing intents
+* **Cloud Infrastructure**: Google Drive REST API via [google_sign_in](https://pub.dev/packages/google_sign_in) and [googleapis](https://pub.dev/packages/googleapis)
+* **Quality & Test Coverage**:
+  * **219 Unit and Widget Tests** (100% pass rate)
+  * End-to-end integration test suite and automated Play Store screenshot generation (`integration_test/`)
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-*   Flutter SDK (^3.11.0)
-*   Android Studio / VS Code with Flutter Extension
-*   (Optional) Firebase account for Crashlytics
+* Flutter SDK (3.11.0 or higher)
+* Android Studio / VS Code with Dart & Flutter extensions
+* Android SDK 33+ or iOS 15+ device / emulator
 
-### Setup
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/HellBus1/VentExpensePro.git
-    cd VentExpensePro
-    ```
+### Local Installation
+```bash
+# 1. Clone repository
+git clone https://github.com/HellBus1/VentExpensePro.git
+cd VentExpensePro
 
-2.  **Install dependencies**:
-    ```bash
-    flutter pub get
-    ```
+# 2. Install dependencies
+flutter pub get
 
-3.  **Run the application**:
-    ```bash
-    flutter run
-    ```
+# 3. Run all unit and widget tests
+flutter test
+
+# 4. Launch on connected device or emulator
+flutter run
+```
 
 ### Production Build (Android)
-The project is configured with ProGuard obfuscation and resource shrinking for optimized release builds.
+Production releases are protected with R8 code shrinking and ProGuard obfuscation:
 
 ```bash
 flutter build apk --release
 ```
 
-*Note: For Crashlytics functionality, ensure `google-services.json` is placed in `android/app/`.*
-
 ---
 
-## 🏗️ Architecture
+## 📖 Technical Documentation
 
-The project follows a **Clean Architecture** pattern to ensure maintainability and testability:
+Comprehensive architectural blueprints and user guides are available in the **[`/docs`](docs/README.md)** directory:
 
-- **`lib/domain`**: Core business logic, entities, and repository interfaces (Pure Dart).
-- **`lib/data`**: Implementation of repositories, SQLite data sources, and external service integrations.
-- **`lib/presentation`**: UI layer consisting of Screens, Widgets (Clean Flat Design), and Providers (State Management).
-- **`lib/core`**: Application-wide configurations like Themes, DI setup, and Constants.
-
----
-
-## 🔒 Privacy & Security
-
-*   **No Central Server**: Your financial data is never stored on our servers.
-*   **Encrypted Sync**: Cloud sync happens directly between your device and your private Google Drive space.
-*   **Obfuscation**: Production builds are obfuscated using R8/ProGuard to protect the application logic.
+* **[Architecture Overview](docs/ARCHITECTURE_OVERVIEW.md)**: System design, Clean Architecture layers, SQLite schema, ERD, and data flow sequences.
+* **[Smart Ledger & 7-D Filters](docs/FEATURE_SMART_LEDGER_AND_FILTERS.md)**: In-depth breakdown of transaction flows and multi-criteria filter mechanics.
+* **[Accounts & Personal Debts](docs/FEATURE_ACCOUNTS_AND_PERSONAL_DEBTS.md)**: Debt accounting, balance conventions, and settlement invariants.
+* **[Credit Cards & Billing Cycles](docs/FEATURE_CREDIT_CARDS_AND_BILLING_CYCLES.md)**: Statement cutoffs, unbilled vs. billed aggregation, and Pay Bill flow.
+* **[Reports & PDF Generation](docs/FEATURE_REPORTS_AND_PDF_GENERATION.md)**: In-app analytics architecture and archival PDF generation engine.
+* **[Manual QA Test Checklist](docs/MANUAL_QA_TEST_CHECKLIST.md)**: 9 test suites containing structured test cases for manual verification.
+* **[Google Drive Sync Architecture](docs/GOOGLE_DRIVE_SYNC_ARCHITECTURE.md)** & **[OAuth Setup Guide](docs/GOOGLE_OAUTH_SETUP_GUIDE.md)**: Cloud sync protocols and credentials configuration.
 
 ---
 
 ## 📄 License
-This project is for personal use and portfolio demonstration. See `LICENSE` for details.
+This project is open-source under the terms of the `LICENSE` file.
